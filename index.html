@@ -232,7 +232,7 @@
       border-color: var(--brand);
     }
 
-    /* Fluid Responsive Grid */
+    /* Responsive Grid */
     .recipe-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
@@ -556,7 +556,7 @@
     }
 
     /* ========================================================
-       REDESIGNED FULLSCREEN COOK MODE
+       FULLSCREEN COOK MODE (INLINE STEP INGREDIENTS)
        ======================================================== */
     .cook-overlay {
       display: none;
@@ -603,56 +603,14 @@
     }
     .cook-exit-btn:hover { background: #334155; color: #fff; }
 
-    .cook-ing-strip {
-      background: #0f172a;
-      border-bottom: 1px solid #1e293b;
-      padding: 12px 20px;
-      flex-shrink: 0;
-    }
-    .cook-ing-strip-title {
-      font-size: 11px;
-      font-weight: 800;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .cook-ing-pills {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-      scrollbar-width: thin;
-      scrollbar-color: #334155 transparent;
-    }
-    .cook-ing-pill {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 6px 12px;
-      font-size: 13px;
-      white-space: nowrap;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: #e2e8f0;
-      flex-shrink: 0;
-    }
-    .cook-ing-pill strong {
-      color: #38bdf8;
-      font-weight: 800;
-    }
-
+    /* All Steps Continuous Scroll Body */
     .cook-steps-viewport {
       flex: 1;
       overflow-y: auto;
       padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
       max-width: 900px;
       margin: 0 auto;
       width: 100%;
@@ -684,6 +642,7 @@
       color: #64748b;
     }
 
+    /* Checkbox Indicator */
     .cook-check-circle {
       width: 28px;
       height: 28px;
@@ -720,18 +679,48 @@
       color: #38bdf8;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .cook-step-card.completed .cook-step-tag {
       color: #64748b;
     }
+
+    /* Step-Specific Ingredients Pills */
+    .cook-step-ing-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .cook-step-ing-pill {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #e2e8f0;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cook-step-ing-pill strong {
+      color: #38bdf8;
+      font-weight: 800;
+    }
+    .cook-step-card.completed .cook-step-ing-pill {
+      opacity: 0.5;
+      border-color: transparent;
+      background: #1e293b;
+    }
+
     .cook-step-desc {
       font-size: 18px;
-      line-height: 1.55;
+      line-height: 1.6;
       font-weight: 500;
       color: #f1f5f9;
     }
 
+    /* In-line Step Timers */
     .cook-step-timer-box {
       margin-top: 14px;
       display: inline-flex;
@@ -857,21 +846,16 @@
     </div>
   </div>
 
-  <!-- REDESIGNED FULLSCREEN COOK MODE -->
+  <!-- ========================================================
+       FULLSCREEN COOK MODE (INLINE STEP INGREDIENTS)
+       ======================================================== -->
   <div class="cook-overlay" id="cookOverlay">
     <div class="cook-header-bar">
       <div class="cook-recipe-heading" id="cookTitle">Recipe Title</div>
       <button class="cook-exit-btn" onclick="exitCook()">✕ Exit Cook Mode</button>
     </div>
 
-    <div class="cook-ing-strip">
-      <div class="cook-ing-strip-title">
-        <span>Ingredients Needed for Recipe</span>
-        <span style="font-size:10px; color:#64748b;">Scroll →</span>
-      </div>
-      <div class="cook-ing-pills" id="cookIngPills"></div>
-    </div>
-
+    <!-- All Cooking Steps on One Screen with In-line Ingredients -->
     <div class="cook-steps-viewport" id="cookStepsViewport"></div>
   </div>
 
@@ -891,7 +875,6 @@
 
   <script>
     // --- PIN AUTHENTICATION SYSTEM (SHA-256) ---
-    // Hashed PIN "400912":
     const PIN_HASH = "42861bee6f5d4674967313c6cc2076eee78accf30f93f6f18e56374740a8dba2";
     const AUTH_KEY = "gousto_vault_authenticated";
 
@@ -935,7 +918,7 @@
 
     // --- MAIN APP CONFIG & TWO-WAY RATINGS ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v9_sheetsync";
+    const CACHE_KEY = "gousto_recipes_pwa_v10_inline_cook";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -958,7 +941,6 @@
       }
     }
 
-    // Hydrate ratings from Google Sheet data
     function hydrateRatingsFromSheet(recipes) {
       recipes.forEach(r => {
         if (r.rating && parseInt(r.rating) > 0) {
@@ -968,7 +950,6 @@
       localStorage.setItem(RATINGS_KEY, JSON.stringify(ratingsMap));
     }
 
-    // Two-Way Sync: Update local state immediately + push to Google Sheet via POST
     async function saveRating(recipeKey, score, e) {
       if (e) e.stopPropagation();
 
@@ -978,7 +959,6 @@
       const current = ratingsMap[title] || 0;
       const newRating = (current === score) ? 0 : score;
 
-      // 1. Optimistic UI update
       if (newRating === 0) {
         delete ratingsMap[title];
         if (recipe) recipe.rating = 0;
@@ -994,7 +974,6 @@
         renderModalRating(title);
       }
 
-      // 2. Direct POST to Google Sheet Apps Script endpoint
       try {
         await fetch(APPS_SCRIPT_URL, {
           method: "POST",
@@ -1117,6 +1096,33 @@
         unit = (matchInline[3] || '').trim().toLowerCase();
       }
       return { name, qty, unit };
+    }
+
+    // Identifies which ingredients from the recipe are utilized in a given step
+    function findStepIngredients(stepText, parsedIngredients) {
+      const text = stepText.toLowerCase();
+      const matched = [];
+
+      parsedIngredients.forEach(ing => {
+        const fullLower = ing.name.toLowerCase();
+        
+        // 1. Direct full name match
+        if (text.includes(fullLower)) {
+          matched.push(ing);
+          return;
+        }
+
+        // 2. Significant root words match (e.g. "potatoes" for "waxy potatoes", "carrots" for "chantenay carrots")
+        const tokens = fullLower
+          .split(/[\s\-]+/)
+          .filter(t => t.length > 3 && !['fresh','dried','baby','waxy','skin','fillets','steaks','breast','mince','sauce'].includes(t));
+
+        if (tokens.some(token => text.includes(token))) {
+          matched.push(ing);
+        }
+      });
+
+      return matched;
     }
 
     function buildAggregatedIngredients() {
@@ -1269,6 +1275,7 @@
         <div class="macro-cell fat"><strong>${r['fat (g)']||'-'}g</strong><span>Fat</span></div>
       `;
 
+      // Floating Modal Ingredients Grid
       document.getElementById('mIngredientsList').innerHTML = (r.ingredients || []).map(i => {
         const parsed = parseIngredientItem(i);
         const qtyStr = (parsed.qty > 0 && parsed.unit) ? `${parsed.qty}${parsed.unit}` : (parsed.qty > 1 ? `×${parsed.qty}` : '');
@@ -1280,6 +1287,7 @@
         `;
       }).join('');
 
+      // Steps List
       const steps = formatSteps(r.instructions);
       document.getElementById('mSteps').innerHTML = steps.map((s, idx) => `
         <div class="step-item" onclick="this.classList.toggle('done')">
@@ -1297,37 +1305,48 @@
     }
 
     // ========================================================
-    // FULLSCREEN COOK MODE LOGIC
+    // FULLSCREEN COOK MODE (INLINE STEP INGREDIENTS)
     // ========================================================
     async function startCook(id) {
       const r = RECIPES.find(item => item.id === id);
       if (!r) return;
       activeRecipe = r;
 
+      // Reset active timers
       Object.values(activeTimers).forEach(t => clearInterval(t.interval));
       activeTimers = {};
 
       document.getElementById('cookTitle').innerText = r.title;
 
-      const ingPillsContainer = document.getElementById('cookIngPills');
-      ingPillsContainer.innerHTML = (r.ingredients || []).map(raw => {
-        const parsed = parseIngredientItem(raw);
-        const qtyStr = (parsed.qty > 0 && parsed.unit) ? `${parsed.qty}${parsed.unit}` : (parsed.qty > 1 ? `×${parsed.qty}` : '');
-        return `
-          <div class="cook-ing-pill">
-            <span>${parsed.name}</span>
-            ${qtyStr ? `<strong>${qtyStr}</strong>` : ''}
-          </div>
-        `;
-      }).join('');
+      // Parse all ingredients for this recipe once
+      const parsedIngredients = (r.ingredients || []).map(parseIngredientItem);
 
+      // Render ALL Steps with matching ingredient quantities injected inline
       const steps = formatSteps(r.instructions);
       const stepsContainer = document.getElementById('cookStepsViewport');
+
       stepsContainer.innerHTML = steps.map((s, idx) => {
         const cleanText = s.replace(/^\d+[\.\)]\s*/, '');
         const timeMatch = cleanText.match(/(\d+)\s*(?:mins?|minutes?)/i);
         const hasTimer = !!timeMatch;
         const minutes = hasTimer ? parseInt(timeMatch[1]) : 0;
+
+        // Detect ingredients used specifically in this step
+        const stepIngs = findStepIngredients(cleanText, parsedIngredients);
+
+        const ingsHtml = stepIngs.length > 0 ? `
+          <div class="cook-step-ing-row">
+            ${stepIngs.map(ing => {
+              const qtyStr = (ing.qty > 0 && ing.unit) ? `${ing.qty}${ing.unit}` : (ing.qty > 1 ? `×${ing.qty}` : '');
+              return `
+                <div class="cook-step-ing-pill">
+                  <span>${ing.name}</span>
+                  ${qtyStr ? `<strong>${qtyStr}</strong>` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        ` : '';
 
         return `
           <div class="cook-step-card" id="cookStepCard_${idx}" onclick="toggleCookStepDone(${idx})">
@@ -1336,6 +1355,7 @@
             </div>
             <div class="cook-step-content">
               <div class="cook-step-tag">Step ${idx + 1}</div>
+              ${ingsHtml}
               <div class="cook-step-desc">${cleanText}</div>
               ${hasTimer ? `
                 <div class="cook-step-timer-box" onclick="event.stopPropagation()">
