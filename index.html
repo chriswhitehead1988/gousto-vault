@@ -645,6 +645,7 @@
       color: #64748b;
     }
 
+    /* Checkbox Indicator */
     .cook-check-circle {
       width: 28px;
       height: 28px;
@@ -721,6 +722,7 @@
       color: #f1f5f9;
     }
 
+    /* In-line Step Timers */
     .cook-step-timer-box {
       margin-top: 14px;
       display: inline-flex;
@@ -934,7 +936,7 @@
 
     // --- MAIN APP CONFIG & TWO-WAY RATINGS ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v11_import_ready";
+    const CACHE_KEY = "gousto_recipes_pwa_v12_gousto_api";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -993,8 +995,7 @@
       try {
         await fetch(APPS_SCRIPT_URL, {
           method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ title: title, rating: newRating })
         });
       } catch (err) {
@@ -1460,26 +1461,31 @@
       btn.disabled = true;
 
       try {
-        await fetch(APPS_SCRIPT_URL, {
+        const res = await fetch(APPS_SCRIPT_URL, {
           method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ action: "importRecipe", url: url })
         });
+        
+        const result = await res.json();
+        
+        if (result.status === "error") {
+          throw new Error(result.message || "Failed to parse recipe.");
+        }
 
         status.style.color = '#22c55e';
-        status.innerText = 'Imported! Refreshing recipes...';
+        status.innerText = `Added "${result.title}"! Syncing...`;
         
         localStorage.removeItem(CACHE_KEY);
         setTimeout(async () => {
           await loadData();
           closeModal('importModal');
           btn.disabled = false;
-        }, 1800);
+        }, 1500);
 
       } catch (err) {
         status.style.color = '#f87171';
-        status.innerText = 'Error importing recipe. Please check URL.';
+        status.innerText = 'Error: ' + err.message;
         btn.disabled = false;
       }
     }
