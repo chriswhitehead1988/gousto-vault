@@ -21,7 +21,7 @@
       --text-muted: #64748b;
       --radius: 16px;
 
-      /* Dietary category hues */
+      /* Category hues */
       --cat-chicken-bg: #fff7ed;
       --cat-chicken-txt: #c2410c;
       --cat-chicken-bar: #fb923c;
@@ -35,7 +35,7 @@
       --cat-fish-txt: #0e7490;
       --cat-fish-bar: #38bdf8;
 
-      /* Macro indicators */
+      /* Macros */
       --macro-prot: #2563eb;
       --macro-carb: #d97706;
       --macro-fat: #e11d48;
@@ -56,7 +56,6 @@
       flex-direction: column;
     }
 
-    /* Top Sticky Header spanning full width */
     header {
       position: sticky;
       top: 0;
@@ -89,7 +88,6 @@
       box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
     }
 
-    /* Full-width Responsive Main Container */
     main {
       flex: 1;
       width: 100%;
@@ -101,7 +99,6 @@
       main { padding: 14px 16px 140px 16px; }
     }
 
-    /* Search & Filter Controls */
     .search-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -144,7 +141,6 @@
       outline: none;
     }
 
-    /* Filter Chips */
     .chip-scroll {
       display: flex;
       gap: 8px;
@@ -177,7 +173,7 @@
       border-color: var(--brand);
     }
 
-    /* Full-Screen Fluid Grid (1 col on mobile -> 4-5 on desktop) */
+    /* Fluid Responsive Grid */
     .recipe-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
@@ -238,7 +234,6 @@
       border-color: var(--brand);
     }
 
-    /* Star Rating Widget */
     .rating-row {
       display: flex;
       align-items: center;
@@ -287,7 +282,6 @@
     .badge-hp { background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; }
     .badge-lc { background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; }
 
-    /* Macro Row */
     .macro-bar {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -306,7 +300,6 @@
     .macro-cell.carb strong { color: var(--macro-carb); }
     .macro-cell.fat strong { color: var(--macro-fat); }
 
-    /* Ingredient Chips */
     .ing-wrap { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; }
     .ing-tag {
       font-size: 11px;
@@ -319,7 +312,6 @@
     }
     .ing-tag:hover { background: #e2e8f0; }
 
-    /* Card Actions */
     .card-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .btn-action {
       padding: 9px;
@@ -368,7 +360,7 @@
       cursor: pointer;
     }
 
-    /* Slide-Up Bottom Sheet Modal */
+    /* Modals */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -407,7 +399,6 @@
       flex: 1;
     }
 
-    /* Cooking Steps */
     .step-item {
       display: flex;
       gap: 12px;
@@ -444,6 +435,20 @@
       background: #16a34a;
       border-color: #16a34a;
       color: #fff;
+    }
+
+    .grocery-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 14px;
+    }
+    .grocery-row:last-child { border-bottom: none; }
+    .grocery-total {
+      font-weight: 800;
+      color: var(--brand);
     }
 
     /* Fullscreen Cook Mode */
@@ -581,7 +586,8 @@
 
   <script>
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v2";
+    // Bumping cache key to immediately purge any stale data without quantities
+    const CACHE_KEY = "gousto_recipes_pwa_v4_quantities";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -589,7 +595,7 @@
     let filterHP = false;
     let filterLC = false;
     let plannedIds = new Set();
-    let ratingsMap = {}; // recipeTitle or id -> number (1-5)
+    let ratingsMap = {};
 
     let activeRecipe = null;
     let cookIndex = 0;
@@ -597,7 +603,6 @@
     let timerInt = null;
     let secondsLeft = 0;
 
-    // Load persistent star ratings from localStorage
     function loadRatings() {
       try {
         const stored = localStorage.getItem(RATINGS_KEY);
@@ -609,7 +614,6 @@
 
     function saveRating(recipeKey, score, e) {
       if (e) e.stopPropagation();
-      // If clicking existing rating, allow toggle off
       if (ratingsMap[recipeKey] === score) {
         delete ratingsMap[recipeKey];
       } else {
@@ -618,13 +622,12 @@
       localStorage.setItem(RATINGS_KEY, JSON.stringify(ratingsMap));
       render();
 
-      // If modal is open, refresh rating in modal
       if (activeRecipe && (activeRecipe.id === recipeKey || activeRecipe.title === recipeKey)) {
         renderModalRating(recipeKey);
       }
     }
 
-    function renderStarWidget(recipeKey, currentRating, isInteractive = true) {
+    function renderStarWidget(recipeKey, currentRating) {
       let starsHtml = '<div class="stars">';
       for (let i = 1; i <= 5; i++) {
         const isFilled = i <= (currentRating || 0);
@@ -712,6 +715,50 @@
       return { label: protein || 'Other', bg: '#f1f5f9', txt: '#475569', bar: '#cbd5e1' };
     }
 
+    // Helper to parse individual ingredient text like "chicken breast: 320g" or "spring onion: 2"
+    function parseIngredientItem(raw) {
+      const str = raw.trim();
+      let name = str;
+      let qty = 1;
+      let unit = '';
+
+      const matchColon = str.match(/^([^:]+):\s*(\d+(?:\.\d+)?)\s*([a-zA-Z]*)$/);
+      const matchInline = str.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(g|kg|ml|tbsp|tsp)?$/i);
+
+      if (matchColon) {
+        name = matchColon[1].trim();
+        qty = parseFloat(matchColon[2]);
+        unit = matchColon[3].trim().toLowerCase();
+      } else if (matchInline) {
+        name = matchInline[1].trim();
+        qty = parseFloat(matchInline[2]);
+        unit = (matchInline[3] || '').trim().toLowerCase();
+      }
+      return { name, qty, unit };
+    }
+
+    // Aggregates quantities across planned recipes (sums matching units)
+    function buildAggregatedIngredients() {
+      const selected = RECIPES.filter(r => plannedIds.has(r.id));
+      const agg = {};
+
+      selected.forEach(r => {
+        (r.ingredients || []).forEach(raw => {
+          const { name, qty, unit } = parseIngredientItem(raw);
+          const key = name.toLowerCase();
+
+          if (!agg[key]) {
+            agg[key] = { displayName: name, total: 0, unit: unit, occurrences: 0 };
+          }
+          if (unit === agg[key].unit && qty) {
+            agg[key].total += qty;
+          }
+          agg[key].occurrences += 1;
+        });
+      });
+      return agg;
+    }
+
     function render() {
       const q = document.getElementById('searchInput').value.toLowerCase().trim();
       const sortVal = document.getElementById('sortSelect').value;
@@ -733,7 +780,6 @@
         return matchesProtein && matchesHP && matchesLC && textMatch;
       });
 
-      // Sorting
       if (sortVal === 'rating') {
         filtered.sort((a,b) => {
           const rA = ratingsMap[a.title] || ratingsMap[a.id] || 0;
@@ -771,7 +817,6 @@
                 <button class="btn-plan" onclick="togglePlan(${r.id}, event)">${isSelected ? '✓ Planned' : '+ Plan'}</button>
               </div>
 
-              <!-- Persistent Rating Stars -->
               ${renderStarWidget(recipeKey, rating)}
 
               <div class="meta-badges">
@@ -789,7 +834,11 @@
               </div>
 
               <div class="ing-wrap">
-                ${(r.ingredients||[]).slice(0, 5).map(i => `<span class="ing-tag">${i}</span>`).join('')}
+                ${(r.ingredients||[]).slice(0, 5).map(i => {
+                  const parsed = parseIngredientItem(i);
+                  const displayStr = parsed.unit || parsed.qty > 1 ? `${parsed.name} (${parsed.qty}${parsed.unit})` : parsed.name;
+                  return `<span class="ing-tag">${displayStr}</span>`;
+                }).join('')}
                 ${(r.ingredients||[]).length > 5 ? `<span class="ing-tag" style="background:transparent; color:#94a3b8;">+${r.ingredients.length - 5} more</span>` : ''}
               </div>
             </div>
@@ -904,37 +953,45 @@
       document.getElementById('cookOverlay').style.display = 'none';
     }
 
+    // Consolidated Shopping List with Total Quantities
     function openGroceryModal() {
-      const selected = RECIPES.filter(r => plannedIds.has(r.id));
-      const agg = {};
-      selected.forEach(r => {
-        (r.ingredients||[]).forEach(i => {
-          const key = i.trim().toLowerCase();
-          agg[key] = (agg[key] || 0) + 1;
-        });
-      });
+      const agg = buildAggregatedIngredients();
+      const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-      document.getElementById('groceryItems').innerHTML = Object.entries(agg).map(([k,v]) => `
-        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f1f5f9; font-size:14px;">
-          <span>☐ ${k}</span>
-          <strong style="color:var(--brand);">${v > 1 ? '×' + v : ''}</strong>
-        </div>
-      `).join('');
+      document.getElementById('groceryItems').innerHTML = items.map(item => {
+        let displayQty = '';
+        if (item.total > 0 && item.unit) {
+          displayQty = `${item.total}${item.unit}`;
+        } else if (item.total > 0) {
+          displayQty = `${item.total}`;
+        } else {
+          displayQty = item.occurrences > 1 ? `×${item.occurrences}` : '1 portion';
+        }
+
+        return `
+          <div class="grocery-row">
+            <span>☐ ${item.displayName}</span>
+            <span class="grocery-total">${displayQty}</span>
+          </div>
+        `;
+      }).join('');
+
       document.getElementById('groceryModal').style.display = 'flex';
     }
 
     function copyGrocery() {
-      const selected = RECIPES.filter(r => plannedIds.has(r.id));
-      const agg = {};
-      selected.forEach(r => {
-        (r.ingredients||[]).forEach(i => {
-          const key = i.trim().toLowerCase();
-          agg[key] = (agg[key] || 0) + 1;
-        });
+      const agg = buildAggregatedIngredients();
+      const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+      const lines = items.map(item => {
+        const qtyStr = (item.total > 0 && item.unit) ? ` (${item.total}${item.unit})` : (item.total > 0 ? ` (${item.total})` : '');
+        return `[ ] ${item.displayName}${qtyStr}`;
       });
-      const lines = Object.entries(agg).map(([k,v]) => `[ ] ${k} ${v > 1 ? '(x' + v + ')' : ''}`);
-      const text = `GOUSTO SHOPPING LIST:\n${lines.join('\n')}`;
-      navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard!"));
+
+      const selected = RECIPES.filter(r => plannedIds.has(r.id));
+      const fullText = `GOUSTO SHOPPING LIST:\n\nPlanned Meals:\n${selected.map(s => `- ${s.title}`).join('\n')}\n\nItems to Buy:\n${lines.join('\n')}`;
+
+      navigator.clipboard.writeText(fullText).then(() => alert("Copied consolidated grocery list to clipboard!"));
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
