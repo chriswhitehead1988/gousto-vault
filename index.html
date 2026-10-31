@@ -56,6 +56,48 @@
       flex-direction: column;
     }
 
+    /* Fullscreen PIN Lock Overlay */
+    #lockScreen {
+      position: fixed;
+      inset: 0;
+      background: #0f172a;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      color: #fff;
+    }
+    .pin-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 24px;
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+    }
+    .pin-input {
+      width: 100%;
+      padding: 14px;
+      font-size: 26px;
+      text-align: center;
+      letter-spacing: 10px;
+      border-radius: 14px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #fff;
+      outline: none;
+      margin: 20px 0 14px 0;
+      font-weight: 700;
+      transition: all 0.2s;
+    }
+    .pin-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.25); }
+    .pin-error { color: #f87171; font-size: 13px; font-weight: 700; display: none; margin-top: 10px; }
+
+    /* Top Sticky Header */
     header {
       position: sticky;
       top: 0;
@@ -80,6 +122,23 @@
       margin: 0;
     }
     .logo span { color: var(--brand); }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-lock {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-lock:hover { background: #f1f5f9; color: var(--text); }
     .status-dot {
       width: 8px;
       height: 8px;
@@ -352,7 +411,9 @@
       font-size: 13px;
       font-weight: 700;
       cursor: pointer;
+      transition: all 0.15s;
     }
+    .btn-basket:hover { background: var(--brand-hover); }
 
     /* Floating Center Modal Box */
     .modal-overlay {
@@ -421,7 +482,7 @@
       margin: 18px 0 8px 0;
     }
 
-    /* Floating Modal Ingredients Grid */
+    /* Modal Ingredients Grid */
     .modal-ing-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -529,10 +590,25 @@
 </head>
 <body>
 
+  <!-- PIN LOCK SCREEN -->
+  <div id="lockScreen">
+    <div class="pin-card">
+      <div style="font-size: 32px; margin-bottom: 6px;">🔒</div>
+      <h3 style="margin: 0; font-size: 20px; font-weight: 800;">Gousto Vault</h3>
+      <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 13px;">Enter PIN to unlock your recipes</p>
+      <input type="password" id="pinCode" class="pin-input" maxlength="6" inputmode="numeric" placeholder="••••" autofocus>
+      <button class="btn-basket" style="width: 100%; padding: 14px; font-size: 14px;" onclick="checkPin()">Unlock Vault</button>
+      <div class="pin-error" id="pinError">Incorrect PIN. Please try again.</div>
+    </div>
+  </div>
+
   <header>
     <div class="header-inner">
       <h1 class="logo">Gousto <span>Vault</span></h1>
-      <div class="status-dot" title="Live Synced"></div>
+      <div class="header-actions">
+        <button class="btn-lock" onclick="lockApp()">🔒 Lock</button>
+        <div class="status-dot" title="Live Synced"></div>
+      </div>
     </div>
   </header>
 
@@ -640,8 +716,53 @@
   </div>
 
   <script>
+    // --- PIN AUTHENTICATION SYSTEM (SHA-256) ---
+    // Default PIN: "1234"
+    const PIN_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";
+    const AUTH_KEY = "gousto_vault_authenticated";
+
+    async function computeSHA256(str) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function checkPin() {
+      const input = document.getElementById('pinCode').value;
+      const errorMsg = document.getElementById('pinError');
+      if (!input) return;
+
+      const hashed = await computeSHA256(input);
+      if (hashed === PIN_HASH) {
+        localStorage.setItem(AUTH_KEY, "true");
+        document.getElementById('lockScreen').style.display = 'none';
+        errorMsg.style.display = 'none';
+      } else {
+        errorMsg.style.display = 'block';
+        document.getElementById('pinCode').value = '';
+        document.getElementById('pinCode').focus();
+      }
+    }
+
+    function lockApp() {
+      localStorage.removeItem(AUTH_KEY);
+      document.getElementById('pinCode').value = '';
+      document.getElementById('pinError').style.display = 'none';
+      document.getElementById('lockScreen').style.display = 'flex';
+      document.getElementById('pinCode').focus();
+    }
+
+    // Check if session is already authenticated
+    if (localStorage.getItem(AUTH_KEY) === "true") {
+      document.getElementById('lockScreen').style.display = 'none';
+    }
+
+    document.getElementById('pinCode').addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') checkPin();
+    });
+
+    // --- MAIN APP LOGIC ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v5_floating";
+    const CACHE_KEY = "gousto_recipes_pwa_v6_pinned";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -940,7 +1061,7 @@
         <div class="macro-cell fat"><strong>${r['fat (g)']||'-'}g</strong><span>Fat</span></div>
       `;
 
-      // Ingredients Grid
+      // Floating Modal Ingredients Grid
       document.getElementById('mIngredientsList').innerHTML = (r.ingredients || []).map(i => {
         const parsed = parseIngredientItem(i);
         const qtyStr = (parsed.qty > 0 && parsed.unit) ? `${parsed.qty}${parsed.unit}` : (parsed.qty > 1 ? `×${parsed.qty}` : '');
