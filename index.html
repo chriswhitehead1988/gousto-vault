@@ -176,7 +176,7 @@
     }
     .input-row { display: flex; gap: 10px; flex-wrap: wrap; width: 100%; }
     .search-input {
-      flex: 1 1 260px;
+      flex: 1 1 240px;
       padding: 12px 16px;
       font-size: 15px;
       border: 1px solid var(--border);
@@ -191,8 +191,29 @@
       border-color: var(--brand);
       box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.1);
     }
+    .btn-pantry-trigger {
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .btn-pantry-trigger:hover { background: #f1f5f9; }
+    .btn-pantry-trigger.has-active {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #047857;
+    }
     .sort-dropdown {
-      flex: 0 1 200px;
+      flex: 0 1 190px;
       padding: 12px 14px;
       border: 1px solid var(--border);
       border-radius: 12px;
@@ -239,6 +260,30 @@
       background: #d97706;
       color: #fff;
       border-color: #d97706;
+    }
+
+    /* Active Pantry Filter Bar Banner */
+    .pantry-active-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .btn-clear-pantry {
+      background: none;
+      border: none;
+      color: #047857;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
     }
 
     /* Responsive Grid */
@@ -363,6 +408,15 @@
     .badge-cooked.fresh {
       background: #ecfdf5;
       color: #047857;
+    }
+    .badge-pantry-match {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11px;
     }
     .badge-hp { background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; }
     .badge-lc { background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; }
@@ -562,6 +616,49 @@
       color: #fff;
     }
 
+    /* Option 3: Companion Recipes UI in Modal */
+    .companion-section {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px dashed var(--border);
+    }
+    .companion-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .companion-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.15s;
+    }
+    .companion-card:hover {
+      border-color: #cbd5e1;
+      background: #f1f5f9;
+    }
+    .companion-info {
+      flex: 1;
+      cursor: pointer;
+    }
+    .companion-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 3px;
+    }
+    .companion-shared {
+      font-size: 11px;
+      color: #047857;
+      font-weight: 600;
+    }
+
     /* Modal Action Buttons */
     .modal-button-row {
       display: flex;
@@ -600,6 +697,41 @@
       color: #e11d48;
     }
     .btn-delete-recipe:hover { background: #ffe4e6; }
+
+    /* ========================================================
+       OPTION 2: PANTRY MATCH MODAL
+       ======================================================== */
+    .pantry-category-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 14px 0 8px 0;
+    }
+    .pantry-chips-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .pantry-toggle-chip {
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .pantry-toggle-chip:hover { background: #f1f5f9; }
+    .pantry-toggle-chip.selected {
+      background: #0f172a;
+      border-color: #0f172a;
+      color: #fff;
+    }
 
     .grocery-row {
       display: flex;
@@ -734,7 +866,6 @@
       color: #64748b;
     }
 
-    /* Checkbox Indicator */
     .cook-check-circle {
       width: 28px;
       height: 28px;
@@ -811,7 +942,6 @@
       color: #f1f5f9;
     }
 
-    /* In-line Step Timers */
     .cook-step-timer-box {
       margin-top: 14px;
       display: inline-flex;
@@ -872,7 +1002,8 @@
   <main>
     <div class="search-card">
       <div class="input-row">
-        <input type="text" id="searchInput" class="search-input" placeholder="Search ingredients or dish title..." oninput="render()">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search ingredients (e.g. chicken, rice)..." oninput="render()">
+        <button class="btn-pantry-trigger" id="btnPantryTrigger" onclick="openPantryModal()">🥕 Match Pantry</button>
         <select id="sortSelect" class="sort-dropdown" onchange="render()">
           <option value="default">Default Sort</option>
           <option value="lastCookedAsc">⏳ Least Recently Cooked</option>
@@ -883,6 +1014,12 @@
           <option value="carb">Lowest Carbs</option>
           <option value="cal">Lowest Calories</option>
         </select>
+      </div>
+
+      <!-- Active Pantry Banner -->
+      <div class="pantry-active-banner" id="pantryActiveBanner">
+        <span id="pantryActiveText">Filtering by pantry items</span>
+        <button class="btn-clear-pantry" onclick="clearPantryFilter()">Clear Filter</button>
       </div>
 
       <div class="chip-scroll">
@@ -938,10 +1075,48 @@
         <div class="section-title">Cooking Steps (Click to complete)</div>
         <div id="mSteps"></div>
 
+        <!-- Option 3: Companion Recipes (Same Ingredients) -->
+        <div class="companion-section" id="companionSection">
+          <div class="section-title" style="margin-top:0;">Pairs Well for Weekly Planning</div>
+          <p style="font-size:12px; color:#64748b; margin:0 0 10px 0;">Recipes sharing 2 or more ingredients to minimize shopping:</p>
+          <div class="companion-list" id="companionList"></div>
+        </div>
+
         <div class="modal-button-row">
           <button class="btn-modal-action btn-cook-primary" onclick="startCookFromModal()">🍳 Cook Mode</button>
           <button class="btn-modal-action btn-cooked-today" id="btnMarkCookedModal" onclick="markRecipeCookedToday()">✓ Cooked Today</button>
           <button class="btn-modal-action btn-delete-recipe" id="btnDeleteModal" onclick="deleteActiveRecipe()">🗑 Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 2: PANTRY MATCH MODAL -->
+  <div class="modal-overlay" id="pantryModal" onclick="closeModal('pantryModal')">
+    <div class="floating-box" style="max-width: 520px;" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <h3 style="margin:0; font-size:18px; font-weight:800;">Match What You Have</h3>
+          <p style="font-size:12px; color:#64748b; margin:4px 0 0 0;">Select ingredients in your fridge/cupboard</p>
+        </div>
+        <button class="modal-close-btn" onclick="closeModal('pantryModal')">✕</button>
+      </div>
+      <div class="modal-scroll" style="padding: 16px 20px;">
+        <div class="pantry-category-title">🍗 Proteins</div>
+        <div class="pantry-chips-wrap" id="pantryProteins"></div>
+
+        <div class="pantry-category-title">🍚 Carbs & Bases</div>
+        <div class="pantry-chips-wrap" id="pantryCarbs"></div>
+
+        <div class="pantry-category-title">🥦 Fresh Produce</div>
+        <div class="pantry-chips-wrap" id="pantryProduce"></div>
+
+        <div class="pantry-category-title">🥫 Store Cupboard</div>
+        <div class="pantry-chips-wrap" id="pantryCupboard"></div>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button class="btn-basket" style="flex:1; padding:12px;" onclick="applyPantryFilter()">Show Matching Recipes</button>
+          <button class="btn-modal-action" style="background:#f1f5f9; border:1px solid var(--border);" onclick="clearPantryFilter(); closeModal('pantryModal');">Reset</button>
         </div>
       </div>
     </div>
@@ -1040,7 +1215,7 @@
 
     // --- MAIN APP CONFIG & TWO-WAY RATINGS ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v15_wakelock_starfilter";
+    const CACHE_KEY = "gousto_recipes_pwa_v16_pantry_options";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -1052,9 +1227,19 @@
     let plannedIds = new Set();
     let ratingsMap = {};
 
+    let selectedPantryIngredients = new Set();
+
     let activeRecipe = null;
     let wakeLock = null;
     let activeTimers = {};
+
+    // Standard staples catalog for the Option 2 Pantry Builder
+    const PANTRY_CATALOG = {
+      proteins: ['chicken', 'beef', 'steak', 'pork', 'seabass', 'salmon', 'halloumi', 'chickpeas', 'tofu'],
+      carbs: ['rice', 'noodles', 'pasta', 'spaghetti', 'gnocchi', 'potatoes', 'tortillas'],
+      produce: ['broccoli', 'mushrooms', 'carrots', 'spinach', 'onion', 'spring onion', 'garlic', 'chilli', 'avocado', 'lemon', 'lime', 'greens'],
+      cupboard: ['soy sauce', 'tomato paste', 'chopped tomatoes', 'cheddar cheese', 'creme fraiche', 'mustard', 'coconut milk', 'curry powder', 'parmesan']
+    };
 
     function loadRatings() {
       try {
@@ -1139,6 +1324,7 @@
 
     async function loadData() {
       loadRatings();
+      initPantryChips();
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         try { 
@@ -1177,12 +1363,12 @@
         document.getElementById('btnLC').classList.toggle('brand-active', filterLC);
       } else if (type === 'star5') {
         filterStar5 = !filterStar5;
-        if (filterStar5) filterStar4 = false; // Mutually exclusive
+        if (filterStar5) filterStar4 = false;
         document.getElementById('btnStar5').classList.toggle('star-active', filterStar5);
         document.getElementById('btnStar4').classList.remove('star-active');
       } else if (type === 'star4') {
         filterStar4 = !filterStar4;
-        if (filterStar4) filterStar5 = false; // Mutually exclusive
+        if (filterStar4) filterStar5 = false;
         document.getElementById('btnStar4').classList.toggle('star-active', filterStar4);
         document.getElementById('btnStar5').classList.remove('star-active');
       }
@@ -1269,6 +1455,31 @@
       return matched;
     }
 
+    // Normalized root tokens for finding recipe pairings (Option 3)
+    function getSignificantTokens(ingredientStr) {
+      return (ingredientStr || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(t => t.length > 3 && !['fresh','dried','baby','waxy','skin','fillets','steaks','breast','mince','sauce','pinch','taste','water','salt','pepper','olive','oil'].includes(t));
+    }
+
+    function countIngredientOverlap(recipeA, recipeB) {
+      const tokensA = new Set();
+      (recipeA.ingredients || []).forEach(i => getSignificantTokens(i).forEach(t => tokensA.add(t)));
+
+      const shared = [];
+      (recipeB.ingredients || []).forEach(i => {
+        const tokensB = getSignificantTokens(i);
+        tokensB.forEach(t => {
+          if (tokensA.has(t) && !shared.includes(t)) {
+            shared.push(t);
+          }
+        });
+      });
+      return shared;
+    }
+
     function buildAggregatedIngredients() {
       const selected = RECIPES.filter(r => plannedIds.has(r.id));
       const agg = {};
@@ -1290,10 +1501,79 @@
       return agg;
     }
 
+    // ========================================================
+    // OPTION 2: PANTRY CHIPS BUILDER
+    // ========================================================
+    function initPantryChips() {
+      const renderChips = (containerId, items) => {
+        const container = document.getElementById(containerId);
+        container.innerHTML = items.map(item => `
+          <div class="pantry-toggle-chip ${selectedPantryIngredients.has(item) ? 'selected' : ''}" 
+               onclick="togglePantryItem('${item}', this)">
+            ${item}
+          </div>
+        `).join('');
+      };
+
+      renderChips('pantryProteins', PANTRY_CATALOG.proteins);
+      renderChips('pantryCarbs', PANTRY_CATALOG.carbs);
+      renderChips('pantryProduce', PANTRY_CATALOG.produce);
+      renderChips('pantryCupboard', PANTRY_CATALOG.cupboard);
+    }
+
+    function togglePantryItem(item, el) {
+      if (selectedPantryIngredients.has(item)) {
+        selectedPantryIngredients.delete(item);
+        el.classList.remove('selected');
+      } else {
+        selectedPantryIngredients.add(item);
+        el.classList.add('selected');
+      }
+    }
+
+    function openPantryModal() {
+      initPantryChips();
+      document.getElementById('pantryModal').style.display = 'flex';
+    }
+
+    function applyPantryFilter() {
+      closeModal('pantryModal');
+      const banner = document.getElementById('pantryActiveBanner');
+      const triggerBtn = document.getElementById('btnPantryTrigger');
+
+      if (selectedPantryIngredients.size > 0) {
+        banner.style.display = 'flex';
+        document.getElementById('pantryActiveText').innerText = `Filtering by: ${Array.from(selectedPantryIngredients).join(', ')}`;
+        triggerBtn.classList.add('has-active');
+        triggerBtn.innerText = `🥕 ${selectedPantryIngredients.size} Selected`;
+      } else {
+        banner.style.display = 'none';
+        triggerBtn.classList.remove('has-active');
+        triggerBtn.innerText = '🥕 Match Pantry';
+      }
+      render();
+    }
+
+    function clearPantryFilter() {
+      selectedPantryIngredients.clear();
+      document.getElementById('pantryActiveBanner').style.display = 'none';
+      const triggerBtn = document.getElementById('btnPantryTrigger');
+      triggerBtn.classList.remove('has-active');
+      triggerBtn.innerText = '🥕 Match Pantry';
+      initPantryChips();
+      render();
+    }
+
+    // ========================================================
+    // MAIN RENDER WITH MULTI-TERM & PANTRY FILTERING
+    // ========================================================
     function render() {
       const q = document.getElementById('searchInput').value.toLowerCase().trim();
       const sortVal = document.getElementById('sortSelect').value;
       const grid = document.getElementById('recipeGrid');
+
+      // Multi-term tokens (space or comma separated)
+      const searchTokens = q ? q.split(/[\s,]+/).filter(Boolean) : [];
 
       let filtered = RECIPES.filter(r => {
         const pVal = (r['protein source'] || r.protein || '').toLowerCase();
@@ -1304,19 +1584,35 @@
         const matchesHP = !filterHP || prot >= 40;
         const matchesLC = !filterLC || (carbs > 0 && carbs < 35);
 
-        // Rating Filters
         const recipeRating = ratingsMap[r.title] || ratingsMap[r.id] || parseInt(r.rating) || 0;
         const matchesStar5 = !filterStar5 || recipeRating === 5;
         const matchesStar4 = !filterStar4 || recipeRating >= 4;
 
-        const titleMatch = (r.title || '').toLowerCase().includes(q);
-        const ingMatch = (r.ingredients || []).some(i => i.toLowerCase().includes(q));
-        const textMatch = !q || titleMatch || ingMatch;
+        // Search tokens match (AND condition)
+        const searchableStr = `${r.title} ${(r.ingredients || []).join(' ')}`.toLowerCase();
+        const matchesSearch = searchTokens.length === 0 || searchTokens.every(tok => searchableStr.includes(tok));
 
-        return matchesProtein && matchesHP && matchesLC && matchesStar5 && matchesStar4 && textMatch;
+        // Option 2 Pantry Matching (Requires matching at least 1 selected pantry item if pantry filter is active)
+        let matchesPantry = true;
+        let pantryMatchCount = 0;
+        if (selectedPantryIngredients.size > 0) {
+          const ingBlob = (r.ingredients || []).join(' ').toLowerCase();
+          selectedPantryIngredients.forEach(item => {
+            if (ingBlob.includes(item)) pantryMatchCount++;
+          });
+          matchesPantry = pantryMatchCount > 0;
+          r._pantryMatchCount = pantryMatchCount;
+        } else {
+          r._pantryMatchCount = 0;
+        }
+
+        return matchesProtein && matchesHP && matchesLC && matchesStar5 && matchesStar4 && matchesSearch && matchesPantry;
       });
 
-      if (sortVal === 'lastCookedAsc') {
+      // Sorting
+      if (selectedPantryIngredients.size > 0 && sortVal === 'default') {
+        filtered.sort((a,b) => (b._pantryMatchCount || 0) - (a._pantryMatchCount || 0));
+      } else if (sortVal === 'lastCookedAsc') {
         filtered.sort((a,b) => {
           const tA = a['last cooked'] ? new Date(a['last cooked']).getTime() : 0;
           const tB = b['last cooked'] ? new Date(b['last cooked']).getTime() : 0;
@@ -1345,7 +1641,7 @@
       }
 
       if (filtered.length === 0) {
-        grid.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8; grid-column:1/-1;">No matching recipes found.</div>';
+        grid.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8; grid-column:1/-1;">No matching recipes found. Try clearing your search or pantry filter.</div>';
         return;
       }
 
@@ -1372,6 +1668,7 @@
                 <span class="tag-category" style="background:${cat.bg}; color:${cat.txt};">${cat.label}</span>
                 <span class="tag-prep">⏱ ${r.time || 'N/A'}</span>
                 <span class="badge-cooked ${cookedInfo.isFresh ? 'fresh' : ''}">${cookedInfo.text}</span>
+                ${r._pantryMatchCount > 0 ? `<span class="badge-pantry-match">🥕 Matches ${r._pantryMatchCount} pantry items</span>` : ''}
                 ${prot >= 40 ? '<span class="badge-hp">40g+ P</span>' : ''}
                 ${carbs < 35 && carbs > 0 ? '<span class="badge-lc">&lt;35g C</span>' : ''}
               </div>
@@ -1412,6 +1709,44 @@
     function renderModalRating(recipeKey) {
       const rating = ratingsMap[recipeKey] || 0;
       document.getElementById('mRatingRow').innerHTML = renderStarWidget(recipeKey, rating);
+    }
+
+    // ========================================================
+    // OPTION 3: COMPANION RECIPES LOGIC IN MODAL
+    // ========================================================
+    function renderCompanionRecipes(currentRecipe) {
+      const container = document.getElementById('companionList');
+      const section = document.getElementById('companionSection');
+
+      // Find other recipes with highest ingredient overlap
+      const candidates = RECIPES
+        .filter(other => other.id !== currentRecipe.id && other.title !== currentRecipe.title)
+        .map(other => {
+          const shared = countIngredientOverlap(currentRecipe, other);
+          return { recipe: other, shared: shared, count: shared.length };
+        })
+        .filter(c => c.count >= 2)
+        .sort((a,b) => b.count - a.count)
+        .slice(0, 3);
+
+      if (candidates.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      section.style.display = 'block';
+      container.innerHTML = candidates.map(c => {
+        const isPlanned = plannedIds.has(c.recipe.id);
+        return `
+          <div class="companion-card">
+            <div class="companion-info" onclick="openDetails(${c.recipe.id})">
+              <div class="companion-title">${c.recipe.title}</div>
+              <div class="companion-shared">🌱 Shared: ${c.shared.join(', ')}</div>
+            </div>
+            <button class="btn-plan" onclick="togglePlan(${c.recipe.id}, event)">${isPlanned ? '✓ Planned' : '+ Plan'}</button>
+          </div>
+        `;
+      }).join('');
     }
 
     function openDetails(id) {
@@ -1461,6 +1796,9 @@
           <div style="flex:1;"><strong>Step ${idx+1}:</strong> ${s.replace(/^\d+[\.\)]\s*/, '')}</div>
         </div>
       `).join('');
+
+      // Populate companion recipes
+      renderCompanionRecipes(r);
 
       document.getElementById('detailModal').style.display = 'flex';
     }
@@ -1568,7 +1906,6 @@
           document.getElementById('wakeIndicator').style.display = 'inline-flex';
           wakeLock.addEventListener('release', () => {
             if (document.getElementById('cookOverlay').style.display === 'flex') {
-              // Re-request if still cooking and page is visible
               if (document.visibilityState === 'visible') requestWakeLock();
             } else {
               document.getElementById('wakeIndicator').style.display = 'none';
@@ -1581,7 +1918,6 @@
       }
     }
 
-    // Handle re-acquisition when returning to tab
     document.addEventListener('visibilitychange', async () => {
       if (document.visibilityState === 'visible' && document.getElementById('cookOverlay').style.display === 'flex') {
         await requestWakeLock();
@@ -1645,8 +1981,6 @@
 
       stepsContainer.scrollTop = 0;
       document.getElementById('cookOverlay').style.display = 'flex';
-
-      // Keep screen awake
       await requestWakeLock();
     }
 
