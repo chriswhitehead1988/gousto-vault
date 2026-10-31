@@ -596,7 +596,7 @@
       <div style="font-size: 32px; margin-bottom: 6px;">🔒</div>
       <h3 style="margin: 0; font-size: 20px; font-weight: 800;">Gousto Vault</h3>
       <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 13px;">Enter PIN to unlock your recipes</p>
-      <input type="password" id="pinCode" class="pin-input" maxlength="6" inputmode="numeric" placeholder="••••" autofocus>
+      <input type="password" id="pinCode" class="pin-input" maxlength="6" inputmode="numeric" placeholder="••••••" autofocus>
       <button class="btn-basket" style="width: 100%; padding: 14px; font-size: 14px;" onclick="checkPin()">Unlock Vault</button>
       <div class="pin-error" id="pinError">Incorrect PIN. Please try again.</div>
     </div>
@@ -717,8 +717,8 @@
 
   <script>
     // --- PIN AUTHENTICATION SYSTEM (SHA-256) ---
-    // Default PIN: "1234"
-    const PIN_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";
+    // PIN "400912" hashed securely:
+    const PIN_HASH = "42861bee6f5d4674967313c6cc2076eee78accf30f93f6f18e56374740a8dba2";
     const AUTH_KEY = "gousto_vault_authenticated";
 
     async function computeSHA256(str) {
@@ -762,7 +762,7 @@
 
     // --- MAIN APP LOGIC ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v6_pinned";
+    const CACHE_KEY = "gousto_recipes_pwa_v7_userpin";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
