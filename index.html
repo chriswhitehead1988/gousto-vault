@@ -125,10 +125,10 @@
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
     }
-    .btn-lock {
-      padding: 6px 12px;
+    .btn-header-action {
+      padding: 7px 12px;
       border-radius: 8px;
       border: 1px solid var(--border);
       background: #f8fafc;
@@ -136,15 +136,19 @@
       font-weight: 700;
       color: var(--text-muted);
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
       transition: all 0.15s;
     }
-    .btn-lock:hover { background: #f1f5f9; color: var(--text); }
+    .btn-header-action:hover { background: #f1f5f9; color: var(--text); }
     .status-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: #22c55e;
       box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+      margin-left: 4px;
     }
 
     main {
@@ -232,7 +236,7 @@
       border-color: var(--brand);
     }
 
-    /* Responsive Grid */
+    /* Fluid Responsive Grid */
     .recipe-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
@@ -603,7 +607,6 @@
     }
     .cook-exit-btn:hover { background: #334155; color: #fff; }
 
-    /* All Steps Continuous Scroll Body */
     .cook-steps-viewport {
       flex: 1;
       overflow-y: auto;
@@ -642,7 +645,6 @@
       color: #64748b;
     }
 
-    /* Checkbox Indicator */
     .cook-check-circle {
       width: 28px;
       height: 28px;
@@ -685,7 +687,6 @@
       color: #64748b;
     }
 
-    /* Step-Specific Ingredients Pills */
     .cook-step-ing-row {
       display: flex;
       flex-wrap: wrap;
@@ -720,7 +721,6 @@
       color: #f1f5f9;
     }
 
-    /* In-line Step Timers */
     .cook-step-timer-box {
       margin-top: 14px;
       display: inline-flex;
@@ -771,7 +771,8 @@
     <div class="header-inner">
       <h1 class="logo">Gousto <span>Vault</span></h1>
       <div class="header-actions">
-        <button class="btn-lock" onclick="lockApp()">🔒 Lock</button>
+        <button class="btn-header-action" onclick="openImportModal()">📥 Import</button>
+        <button class="btn-header-action" onclick="lockApp()">🔒 Lock</button>
         <div class="status-dot" title="Live Synced"></div>
       </div>
     </div>
@@ -846,17 +847,32 @@
     </div>
   </div>
 
-  <!-- ========================================================
-       FULLSCREEN COOK MODE (INLINE STEP INGREDIENTS)
-       ======================================================== -->
+  <!-- FULLSCREEN COOK MODE -->
   <div class="cook-overlay" id="cookOverlay">
     <div class="cook-header-bar">
       <div class="cook-recipe-heading" id="cookTitle">Recipe Title</div>
       <button class="cook-exit-btn" onclick="exitCook()">✕ Exit Cook Mode</button>
     </div>
 
-    <!-- All Cooking Steps on One Screen with In-line Ingredients -->
     <div class="cook-steps-viewport" id="cookStepsViewport"></div>
+  </div>
+
+  <!-- IMPORT RECIPE MODAL -->
+  <div class="modal-overlay" id="importModal" onclick="closeModal('importModal')">
+    <div class="floating-box" style="max-width: 480px;" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <h3 style="margin:0; font-size:18px; font-weight:800;">Import Recipe via URL</h3>
+        <button class="modal-close-btn" onclick="closeModal('importModal')">✕</button>
+      </div>
+      <div class="modal-scroll" style="padding: 22px;">
+        <p style="font-size: 13px; color: #64748b; margin-top: 0; line-height: 1.5;">
+          Paste any public recipe URL (Gousto cookbook, BBC Good Food, food blog, etc.). The server will parse the details and save them to your Google Sheet.
+        </p>
+        <input type="url" id="importUrlInput" class="search-input" placeholder="https://www.gousto.co.uk/cookbook/recipes/..." style="width: 100%; margin-bottom: 14px;">
+        <button class="btn-basket" id="btnDoImport" style="width: 100%; padding: 13px;" onclick="submitRecipeImport()">📥 Import & Save to Sheet</button>
+        <div id="importStatus" style="font-size: 13px; font-weight: 700; text-align: center; margin-top: 14px; display: none;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Consolidated Grocery Modal -->
@@ -918,7 +934,7 @@
 
     // --- MAIN APP CONFIG & TWO-WAY RATINGS ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v10_inline_cook";
+    const CACHE_KEY = "gousto_recipes_pwa_v11_import_ready";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -1098,21 +1114,16 @@
       return { name, qty, unit };
     }
 
-    // Identifies which ingredients from the recipe are utilized in a given step
     function findStepIngredients(stepText, parsedIngredients) {
       const text = stepText.toLowerCase();
       const matched = [];
 
       parsedIngredients.forEach(ing => {
         const fullLower = ing.name.toLowerCase();
-        
-        // 1. Direct full name match
         if (text.includes(fullLower)) {
           matched.push(ing);
           return;
         }
-
-        // 2. Significant root words match (e.g. "potatoes" for "waxy potatoes", "carrots" for "chantenay carrots")
         const tokens = fullLower
           .split(/[\s\-]+/)
           .filter(t => t.length > 3 && !['fresh','dried','baby','waxy','skin','fillets','steaks','breast','mince','sauce'].includes(t));
@@ -1121,7 +1132,6 @@
           matched.push(ing);
         }
       });
-
       return matched;
     }
 
@@ -1275,7 +1285,6 @@
         <div class="macro-cell fat"><strong>${r['fat (g)']||'-'}g</strong><span>Fat</span></div>
       `;
 
-      // Floating Modal Ingredients Grid
       document.getElementById('mIngredientsList').innerHTML = (r.ingredients || []).map(i => {
         const parsed = parseIngredientItem(i);
         const qtyStr = (parsed.qty > 0 && parsed.unit) ? `${parsed.qty}${parsed.unit}` : (parsed.qty > 1 ? `×${parsed.qty}` : '');
@@ -1287,7 +1296,6 @@
         `;
       }).join('');
 
-      // Steps List
       const steps = formatSteps(r.instructions);
       document.getElementById('mSteps').innerHTML = steps.map((s, idx) => `
         <div class="step-item" onclick="this.classList.toggle('done')">
@@ -1312,16 +1320,12 @@
       if (!r) return;
       activeRecipe = r;
 
-      // Reset active timers
       Object.values(activeTimers).forEach(t => clearInterval(t.interval));
       activeTimers = {};
 
       document.getElementById('cookTitle').innerText = r.title;
 
-      // Parse all ingredients for this recipe once
       const parsedIngredients = (r.ingredients || []).map(parseIngredientItem);
-
-      // Render ALL Steps with matching ingredient quantities injected inline
       const steps = formatSteps(r.instructions);
       const stepsContainer = document.getElementById('cookStepsViewport');
 
@@ -1331,9 +1335,7 @@
         const hasTimer = !!timeMatch;
         const minutes = hasTimer ? parseInt(timeMatch[1]) : 0;
 
-        // Detect ingredients used specifically in this step
         const stepIngs = findStepIngredients(cleanText, parsedIngredients);
-
         const ingsHtml = stepIngs.length > 0 ? `
           <div class="cook-step-ing-row">
             ${stepIngs.map(ing => {
@@ -1433,6 +1435,53 @@
 
     function formatTime(s) {
       return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+    }
+
+    // ==========================================
+    // RECIPE URL IMPORT CLIENT LOGIC
+    // ==========================================
+    function openImportModal() {
+      document.getElementById('importUrlInput').value = '';
+      document.getElementById('importStatus').style.display = 'none';
+      document.getElementById('importModal').style.display = 'flex';
+      document.getElementById('importUrlInput').focus();
+    }
+
+    async function submitRecipeImport() {
+      const url = document.getElementById('importUrlInput').value.trim();
+      const status = document.getElementById('importStatus');
+      const btn = document.getElementById('btnDoImport');
+
+      if (!url) return;
+
+      status.style.display = 'block';
+      status.style.color = '#38bdf8';
+      status.innerText = 'Extracting recipe and writing to Google Sheet...';
+      btn.disabled = true;
+
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "importRecipe", url: url })
+        });
+
+        status.style.color = '#22c55e';
+        status.innerText = 'Imported! Refreshing recipes...';
+        
+        localStorage.removeItem(CACHE_KEY);
+        setTimeout(async () => {
+          await loadData();
+          closeModal('importModal');
+          btn.disabled = false;
+        }, 1800);
+
+      } catch (err) {
+        status.style.color = '#f87171';
+        status.innerText = 'Error importing recipe. Please check URL.';
+        btn.disabled = false;
+      }
     }
 
     function openGroceryModal() {
