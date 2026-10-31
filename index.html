@@ -192,7 +192,7 @@
       box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.1);
     }
     .sort-dropdown {
-      flex: 0 1 180px;
+      flex: 0 1 200px;
       padding: 12px 14px;
       border: 1px solid var(--border);
       border-radius: 12px;
@@ -236,7 +236,7 @@
       border-color: var(--brand);
     }
 
-    /* Fluid Responsive Grid */
+    /* Responsive Grid */
     .recipe-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
@@ -347,6 +347,18 @@
       font-size: 11px;
     }
     .tag-prep { color: var(--text-muted); font-weight: 600; }
+    .badge-cooked {
+      background: #f1f5f9;
+      color: #475569;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    .badge-cooked.fresh {
+      background: #ecfdf5;
+      color: #047857;
+    }
     .badge-hp { background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; }
     .badge-lc { background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; }
 
@@ -545,28 +557,44 @@
       color: #fff;
     }
 
-    /* Modal Action Buttons (Cook & Delete) */
+    /* Modal Action Buttons (Cook, Cooked Today, Delete) */
     .modal-button-row {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       margin-top: 18px;
+      flex-wrap: wrap;
     }
+    .btn-modal-action {
+      padding: 13px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .btn-cook-primary {
+      flex: 1 1 140px;
+      background: #0f172a;
+      color: #fff;
+      border: none;
+    }
+    .btn-cooked-today {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #047857;
+    }
+    .btn-cooked-today:hover { background: #d1fae5; }
     .btn-delete-recipe {
       background: #fff1f2;
       border: 1px solid #fecdd3;
       color: #e11d48;
-      padding: 14px 18px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
     }
-    .btn-delete-recipe:hover {
-      background: #ffe4e6;
-      border-color: #fda4af;
-    }
+    .btn-delete-recipe:hover { background: #ffe4e6; }
 
     .grocery-row {
       display: flex;
@@ -614,11 +642,16 @@
       text-overflow: ellipsis;
       margin-right: 12px;
     }
-    .cook-exit-btn {
-      background: #1e293b;
-      border: 1px solid #334155;
-      color: #f1f5f9;
-      padding: 6px 14px;
+    .cook-header-btns {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cook-finish-btn {
+      background: #16a34a;
+      border: none;
+      color: #fff;
+      padding: 8px 16px;
       border-radius: 8px;
       font-size: 13px;
       font-weight: 700;
@@ -626,6 +659,18 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      transition: all 0.15s;
+    }
+    .cook-finish-btn:hover { background: #15803d; }
+    .cook-exit-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f1f5f9;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
       transition: all 0.15s;
     }
     .cook-exit-btn:hover { background: #334155; color: #fff; }
@@ -668,6 +713,7 @@
       color: #64748b;
     }
 
+    /* Checkbox Indicator */
     .cook-check-circle {
       width: 28px;
       height: 28px;
@@ -744,6 +790,7 @@
       color: #f1f5f9;
     }
 
+    /* In-line Step Timers */
     .cook-step-timer-box {
       margin-top: 14px;
       display: inline-flex;
@@ -807,6 +854,8 @@
         <input type="text" id="searchInput" class="search-input" placeholder="Search ingredients or dish title..." oninput="render()">
         <select id="sortSelect" class="sort-dropdown" onchange="render()">
           <option value="default">Default Sort</option>
+          <option value="lastCookedAsc">⏳ Least Recently Cooked</option>
+          <option value="lastCookedDesc">🔥 Most Recently Cooked</option>
           <option value="rating">★ Highest Rated</option>
           <option value="time">Fastest Cooking</option>
           <option value="prot">Highest Protein (40g+)</option>
@@ -850,6 +899,7 @@
           <div style="display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;">
             <span id="mCategoryTag" class="tag-category"></span>
             <span id="mPrepTag" style="font-size:12px; font-weight:700; color:#64748b;"></span>
+            <span id="mCookedTag" class="badge-cooked"></span>
             <div id="mRatingRow" class="rating-row" style="margin:0;"></div>
           </div>
         </div>
@@ -866,8 +916,9 @@
         <div id="mSteps"></div>
 
         <div class="modal-button-row">
-          <button class="btn-basket" style="flex: 1; padding: 14px; font-size: 14px; background: #0f172a;" onclick="startCookFromModal()">🍳 Cook Mode</button>
-          <button class="btn-delete-recipe" id="btnDeleteModal" onclick="deleteActiveRecipe()">🗑 Delete Recipe</button>
+          <button class="btn-modal-action btn-cook-primary" onclick="startCookFromModal()">🍳 Cook Mode</button>
+          <button class="btn-modal-action btn-cooked-today" id="btnMarkCookedModal" onclick="markRecipeCookedToday()">✓ Cooked Today</button>
+          <button class="btn-modal-action btn-delete-recipe" id="btnDeleteModal" onclick="deleteActiveRecipe()">🗑 Delete</button>
         </div>
       </div>
     </div>
@@ -877,7 +928,10 @@
   <div class="cook-overlay" id="cookOverlay">
     <div class="cook-header-bar">
       <div class="cook-recipe-heading" id="cookTitle">Recipe Title</div>
-      <button class="cook-exit-btn" onclick="exitCook()">✕ Exit Cook Mode</button>
+      <div class="cook-header-btns">
+        <button class="cook-finish-btn" onclick="finishCookMode()">✓ Finish Cooking</button>
+        <button class="cook-exit-btn" onclick="exitCook()">✕ Exit</button>
+      </div>
     </div>
 
     <div class="cook-steps-viewport" id="cookStepsViewport"></div>
@@ -960,7 +1014,7 @@
 
     // --- MAIN APP CONFIG & TWO-WAY RATINGS ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v13_delete_ready";
+    const CACHE_KEY = "gousto_recipes_pwa_v14_lastcooked";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -990,6 +1044,24 @@
         }
       });
       localStorage.setItem(RATINGS_KEY, JSON.stringify(ratingsMap));
+    }
+
+    // Relative Date Formatter (e.g. "Cooked today", "Cooked 4d ago", "Cooked 2w ago")
+    function formatLastCookedRelative(dateStr) {
+      if (!dateStr) return { text: "Never cooked", isFresh: false };
+      
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const past = new Date(dateStr);
+      past.setHours(0,0,0,0);
+
+      const diffDays = Math.round((today - past) / (1000 * 60 * 60 * 24));
+      
+      if (diffDays <= 0) return { text: "Cooked today", isFresh: true };
+      if (diffDays === 1) return { text: "Cooked yesterday", isFresh: true };
+      if (diffDays < 7) return { text: `Cooked ${diffDays}d ago`, isFresh: true };
+      if (diffDays < 30) return { text: `Cooked ${Math.floor(diffDays / 7)}w ago`, isFresh: false };
+      return { text: `Cooked ${Math.floor(diffDays / 30)}mo ago`, isFresh: false };
     }
 
     async function saveRating(recipeKey, score, e) {
@@ -1202,7 +1274,21 @@
         return matchesProtein && matchesHP && matchesLC && textMatch;
       });
 
-      if (sortVal === 'rating') {
+      if (sortVal === 'lastCookedAsc') {
+        // Least recently cooked first (never cooked at top)
+        filtered.sort((a,b) => {
+          const tA = a['last cooked'] ? new Date(a['last cooked']).getTime() : 0;
+          const tB = b['last cooked'] ? new Date(b['last cooked']).getTime() : 0;
+          return tA - tB;
+        });
+      } else if (sortVal === 'lastCookedDesc') {
+        // Most recently cooked first
+        filtered.sort((a,b) => {
+          const tA = a['last cooked'] ? new Date(a['last cooked']).getTime() : 0;
+          const tB = b['last cooked'] ? new Date(b['last cooked']).getTime() : 0;
+          return tB - tA;
+        });
+      } else if (sortVal === 'rating') {
         filtered.sort((a,b) => {
           const rA = ratingsMap[a.title] || ratingsMap[a.id] || 0;
           const rB = ratingsMap[b.title] || ratingsMap[b.id] || 0;
@@ -1230,6 +1316,7 @@
         const carbs = parseFloat(r['carbs (g)']) || 0;
         const recipeKey = r.title || r.id;
         const rating = ratingsMap[recipeKey] || 0;
+        const cookedInfo = formatLastCookedRelative(r['last cooked']);
 
         return `
           <div class="recipe-card ${isSelected ? 'selected' : ''}" style="--cat-bar: ${cat.bar};" onclick="openDetails(${r.id})">
@@ -1244,6 +1331,7 @@
               <div class="meta-badges">
                 <span class="tag-category" style="background:${cat.bg}; color:${cat.txt};">${cat.label}</span>
                 <span class="tag-prep">⏱ ${r.time || 'N/A'}</span>
+                <span class="badge-cooked ${cookedInfo.isFresh ? 'fresh' : ''}">${cookedInfo.text}</span>
                 ${prot >= 40 ? '<span class="badge-hp">40g+ P</span>' : ''}
                 ${carbs < 35 && carbs > 0 ? '<span class="badge-lc">&lt;35g C</span>' : ''}
               </div>
@@ -1292,6 +1380,7 @@
       activeRecipe = r;
       const recipeKey = r.title || r.id;
       const cat = getProteinStyle(r['protein source'] || r.protein);
+      const cookedInfo = formatLastCookedRelative(r['last cooked']);
 
       document.getElementById('mTitle').innerText = r.title;
       document.getElementById('mPrepTag').innerText = `⏱ ${r.time || 'N/A'}`;
@@ -1300,6 +1389,10 @@
       catTag.innerText = cat.label;
       catTag.style.background = cat.bg;
       catTag.style.color = cat.txt;
+
+      const cookedTag = document.getElementById('mCookedTag');
+      cookedTag.innerText = cookedInfo.text;
+      cookedTag.className = `badge-cooked ${cookedInfo.isFresh ? 'fresh' : ''}`;
 
       renderModalRating(recipeKey);
 
@@ -1333,8 +1426,55 @@
     }
 
     // ==========================================
-    // DELETE RECIPE LOGIC
+    // MARK COOKED LOGIC (TODAY'S DATE)
     // ==========================================
+    async function markRecipeCooked(recipeObj) {
+      if (!recipeObj) return;
+      const todayStr = new Date().toISOString().split('T')[0];
+      recipeObj['last cooked'] = todayStr;
+
+      localStorage.setItem(CACHE_KEY, JSON.stringify(RECIPES));
+      render();
+
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "markCooked", title: recipeObj.title, date: todayStr })
+        });
+      } catch (err) {
+        console.warn("Failed to sync Last Cooked to Sheet:", err);
+      }
+    }
+
+    async function markRecipeCookedToday() {
+      if (!activeRecipe) return;
+      const btn = document.getElementById('btnMarkCookedModal');
+      btn.innerText = "Saving...";
+      btn.disabled = true;
+
+      await markRecipeCooked(activeRecipe);
+
+      const cookedInfo = formatLastCookedRelative(activeRecipe['last cooked']);
+      const cookedTag = document.getElementById('mCookedTag');
+      cookedTag.innerText = cookedInfo.text;
+      cookedTag.className = `badge-cooked ${cookedInfo.isFresh ? 'fresh' : ''}`;
+
+      btn.innerText = "✓ Saved!";
+      setTimeout(() => {
+        btn.innerText = "✓ Cooked Today";
+        btn.disabled = false;
+      }, 1200);
+    }
+
+    async function finishCookMode() {
+      if (activeRecipe) {
+        await markRecipeCooked(activeRecipe);
+      }
+      exitCook();
+      alert(`🎉 Nice cooking! Marked "${activeRecipe ? activeRecipe.title : 'recipe'}" as cooked today.`);
+    }
+
     async function deleteActiveRecipe() {
       if (!activeRecipe) return;
 
@@ -1348,7 +1488,6 @@
       btn.innerText = "Deleting...";
       btn.disabled = true;
 
-      // 1. Optimistic UI update: Remove immediately from state & localStorage
       RECIPES = RECIPES.filter(r => r.title !== titleToDelete && r.id !== idToDelete);
       plannedIds.delete(idToDelete);
       delete ratingsMap[titleToDelete];
@@ -1359,21 +1498,16 @@
       updatePlanner();
       render();
 
-      // 2. Sync deletion to Google Sheet via Apps Script
       try {
-        const res = await fetch(APPS_SCRIPT_URL, {
+        await fetch(APPS_SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ action: "deleteRecipe", title: titleToDelete })
         });
-        const result = await res.json();
-        if (result.status === "error") {
-          console.warn("Server message:", result.message);
-        }
       } catch (err) {
         console.warn("Failed to delete from Google Sheet:", err);
       } finally {
-        btn.innerText = "🗑 Delete Recipe";
+        btn.innerText = "🗑 Delete";
         btn.disabled = false;
         activeRecipe = null;
       }
@@ -1509,9 +1643,6 @@
       return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
     }
 
-    // ==========================================
-    // RECIPE URL IMPORT CLIENT LOGIC
-    // ==========================================
     function openImportModal() {
       document.getElementById('importUrlInput').value = '';
       document.getElementById('importStatus').style.display = 'none';
