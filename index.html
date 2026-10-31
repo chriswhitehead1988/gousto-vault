@@ -208,7 +208,7 @@
       display: flex;
       gap: 8px;
       overflow-x: auto;
-      padding-bottom: 2px;
+      padding-bottom: 4px;
       scrollbar-width: none;
     }
     .chip-scroll::-webkit-scrollbar { display: none; }
@@ -234,6 +234,11 @@
       background: var(--brand);
       color: #fff;
       border-color: var(--brand);
+    }
+    .chip.star-active {
+      background: #d97706;
+      color: #fff;
+      border-color: #d97706;
     }
 
     /* Responsive Grid */
@@ -557,7 +562,7 @@
       color: #fff;
     }
 
-    /* Modal Action Buttons (Cook, Cooked Today, Delete) */
+    /* Modal Action Buttons */
     .modal-button-row {
       display: flex;
       gap: 8px;
@@ -611,7 +616,7 @@
     }
 
     /* ========================================================
-       FULLSCREEN COOK MODE (INLINE STEP INGREDIENTS)
+       FULLSCREEN COOK MODE
        ======================================================== */
     .cook-overlay {
       display: none;
@@ -641,6 +646,22 @@
       overflow: hidden;
       text-overflow: ellipsis;
       margin-right: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .wake-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 2px 6px;
+      border-radius: 6px;
+      white-space: nowrap;
     }
     .cook-header-btns {
       display: flex;
@@ -870,6 +891,8 @@
         <button class="chip" onclick="setProtein('Beef', this)">🥩 Beef</button>
         <button class="chip" onclick="setProtein('Vegetarian', this)">🌱 Veg</button>
         <button class="chip" onclick="setProtein('Fish', this)">🐟 Fish</button>
+        <button class="chip" id="btnStar5" onclick="toggleFilter('star5')">★ 5 Star</button>
+        <button class="chip" id="btnStar4" onclick="toggleFilter('star4')">★ 4+ Star</button>
         <button class="chip" id="btnHP" onclick="toggleFilter('hp')">40g+ Prot</button>
         <button class="chip" id="btnLC" onclick="toggleFilter('lc')">&lt;35g Carb</button>
       </div>
@@ -927,7 +950,10 @@
   <!-- FULLSCREEN COOK MODE -->
   <div class="cook-overlay" id="cookOverlay">
     <div class="cook-header-bar">
-      <div class="cook-recipe-heading" id="cookTitle">Recipe Title</div>
+      <div class="cook-recipe-heading">
+        <span id="cookTitle">Recipe Title</span>
+        <span class="wake-indicator" id="wakeIndicator">📱 Screen Awake</span>
+      </div>
       <div class="cook-header-btns">
         <button class="cook-finish-btn" onclick="finishCookMode()">✓ Finish Cooking</button>
         <button class="cook-exit-btn" onclick="exitCook()">✕ Exit</button>
@@ -1014,13 +1040,15 @@
 
     // --- MAIN APP CONFIG & TWO-WAY RATINGS ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v14_lastcooked";
+    const CACHE_KEY = "gousto_recipes_pwa_v15_wakelock_starfilter";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
     let currentProtein = 'All';
     let filterHP = false;
     let filterLC = false;
+    let filterStar5 = false;
+    let filterStar4 = false;
     let plannedIds = new Set();
     let ratingsMap = {};
 
@@ -1046,7 +1074,6 @@
       localStorage.setItem(RATINGS_KEY, JSON.stringify(ratingsMap));
     }
 
-    // Relative Date Formatter (e.g. "Cooked today", "Cooked 4d ago", "Cooked 2w ago")
     function formatLastCookedRelative(dateStr) {
       if (!dateStr) return { text: "Never cooked", isFresh: false };
       
@@ -1148,6 +1175,16 @@
       } else if (type === 'lc') {
         filterLC = !filterLC;
         document.getElementById('btnLC').classList.toggle('brand-active', filterLC);
+      } else if (type === 'star5') {
+        filterStar5 = !filterStar5;
+        if (filterStar5) filterStar4 = false; // Mutually exclusive
+        document.getElementById('btnStar5').classList.toggle('star-active', filterStar5);
+        document.getElementById('btnStar4').classList.remove('star-active');
+      } else if (type === 'star4') {
+        filterStar4 = !filterStar4;
+        if (filterStar4) filterStar5 = false; // Mutually exclusive
+        document.getElementById('btnStar4').classList.toggle('star-active', filterStar4);
+        document.getElementById('btnStar5').classList.remove('star-active');
       }
       render();
     }
@@ -1267,22 +1304,25 @@
         const matchesHP = !filterHP || prot >= 40;
         const matchesLC = !filterLC || (carbs > 0 && carbs < 35);
 
+        // Rating Filters
+        const recipeRating = ratingsMap[r.title] || ratingsMap[r.id] || parseInt(r.rating) || 0;
+        const matchesStar5 = !filterStar5 || recipeRating === 5;
+        const matchesStar4 = !filterStar4 || recipeRating >= 4;
+
         const titleMatch = (r.title || '').toLowerCase().includes(q);
         const ingMatch = (r.ingredients || []).some(i => i.toLowerCase().includes(q));
         const textMatch = !q || titleMatch || ingMatch;
 
-        return matchesProtein && matchesHP && matchesLC && textMatch;
+        return matchesProtein && matchesHP && matchesLC && matchesStar5 && matchesStar4 && textMatch;
       });
 
       if (sortVal === 'lastCookedAsc') {
-        // Least recently cooked first (never cooked at top)
         filtered.sort((a,b) => {
           const tA = a['last cooked'] ? new Date(a['last cooked']).getTime() : 0;
           const tB = b['last cooked'] ? new Date(b['last cooked']).getTime() : 0;
           return tA - tB;
         });
       } else if (sortVal === 'lastCookedDesc') {
-        // Most recently cooked first
         filtered.sort((a,b) => {
           const tA = a['last cooked'] ? new Date(a['last cooked']).getTime() : 0;
           const tB = b['last cooked'] ? new Date(b['last cooked']).getTime() : 0;
@@ -1315,7 +1355,7 @@
         const prot = parseFloat(r['protein (g)']) || 0;
         const carbs = parseFloat(r['carbs (g)']) || 0;
         const recipeKey = r.title || r.id;
-        const rating = ratingsMap[recipeKey] || 0;
+        const rating = ratingsMap[recipeKey] || parseInt(r.rating) || 0;
         const cookedInfo = formatLastCookedRelative(r['last cooked']);
 
         return `
@@ -1426,7 +1466,7 @@
     }
 
     // ==========================================
-    // MARK COOKED LOGIC (TODAY'S DATE)
+    // MARK COOKED LOGIC
     // ==========================================
     async function markRecipeCooked(recipeObj) {
       if (!recipeObj) return;
@@ -1519,8 +1559,35 @@
     }
 
     // ========================================================
-    // FULLSCREEN COOK MODE (INLINE STEP INGREDIENTS)
+    // FULLSCREEN COOK MODE & WAKE LOCK
     // ========================================================
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          document.getElementById('wakeIndicator').style.display = 'inline-flex';
+          wakeLock.addEventListener('release', () => {
+            if (document.getElementById('cookOverlay').style.display === 'flex') {
+              // Re-request if still cooking and page is visible
+              if (document.visibilityState === 'visible') requestWakeLock();
+            } else {
+              document.getElementById('wakeIndicator').style.display = 'none';
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("Screen Wake Lock error:", err);
+        document.getElementById('wakeIndicator').style.display = 'none';
+      }
+    }
+
+    // Handle re-acquisition when returning to tab
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible' && document.getElementById('cookOverlay').style.display === 'flex') {
+        await requestWakeLock();
+      }
+    });
+
     async function startCook(id) {
       const r = RECIPES.find(item => item.id === id);
       if (!r) return;
@@ -1579,11 +1646,8 @@
       stepsContainer.scrollTop = 0;
       document.getElementById('cookOverlay').style.display = 'flex';
 
-      try {
-        if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
-      } catch (err) {
-        console.warn("WakeLock error:", err);
-      }
+      // Keep screen awake
+      await requestWakeLock();
     }
 
     function toggleCookStepDone(idx) {
@@ -1637,6 +1701,7 @@
         wakeLock.release().catch(() => {});
         wakeLock = null;
       }
+      document.getElementById('wakeIndicator').style.display = 'none';
     }
 
     function formatTime(s) {
