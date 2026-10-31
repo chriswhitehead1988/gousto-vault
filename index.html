@@ -262,7 +262,7 @@
       border-color: #d97706;
     }
 
-    /* Active Pantry Filter Bar Banner */
+    /* Active Pantry Banner */
     .pantry-active-banner {
       display: none;
       align-items: center;
@@ -698,9 +698,7 @@
     }
     .btn-delete-recipe:hover { background: #ffe4e6; }
 
-    /* ========================================================
-       OPTION 2: PANTRY MATCH MODAL
-       ======================================================== */
+    /* Pantry Builder Modal */
     .pantry-category-title {
       font-size: 11px;
       font-weight: 800;
@@ -747,9 +745,7 @@
       color: var(--brand);
     }
 
-    /* ========================================================
-       FULLSCREEN COOK MODE
-       ======================================================== */
+    /* Fullscreen Cook Mode */
     .cook-overlay {
       display: none;
       position: fixed;
@@ -1215,7 +1211,7 @@
 
     // --- MAIN APP CONFIG & TWO-WAY RATINGS ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v16_pantry_options";
+    const CACHE_KEY = "gousto_recipes_pwa_v17_front_qty_parser";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -1233,12 +1229,11 @@
     let wakeLock = null;
     let activeTimers = {};
 
-    // Standard staples catalog for the Option 2 Pantry Builder
     const PANTRY_CATALOG = {
       proteins: ['chicken', 'beef', 'steak', 'pork', 'seabass', 'salmon', 'halloumi', 'chickpeas', 'tofu'],
-      carbs: ['rice', 'noodles', 'pasta', 'spaghetti', 'gnocchi', 'potatoes', 'tortillas'],
-      produce: ['broccoli', 'mushrooms', 'carrots', 'spinach', 'onion', 'spring onion', 'garlic', 'chilli', 'avocado', 'lemon', 'lime', 'greens'],
-      cupboard: ['soy sauce', 'tomato paste', 'chopped tomatoes', 'cheddar cheese', 'creme fraiche', 'mustard', 'coconut milk', 'curry powder', 'parmesan']
+      carbs: ['rice', 'noodles', 'pasta', 'spaghetti', 'gnocchi', 'potatoes', 'chips', 'tortillas'],
+      produce: ['broccoli', 'mushrooms', 'carrots', 'spinach', 'onion', 'spring onion', 'garlic', 'chilli', 'avocado', 'lemon', 'lime', 'greens', 'tomato', 'coriander'],
+      cupboard: ['soy sauce', 'tomato paste', 'chopped tomatoes', 'cheddar cheese', 'creme fraiche', 'mustard', 'coconut milk', 'curry powder', 'parmesan', 'honey', 'balsamic']
     };
 
     function loadRatings() {
@@ -1408,30 +1403,82 @@
       const p = (protein || '').toLowerCase();
       if (p.includes('chicken')) return { label: '🍗 Chicken', bg: 'var(--cat-chicken-bg)', txt: 'var(--cat-chicken-txt)', bar: 'var(--cat-chicken-bar)' };
       if (p.includes('beef')) return { label: '🥩 Beef', bg: 'var(--cat-beef-bg)', txt: 'var(--cat-beef-txt)', bar: 'var(--cat-beef-bar)' };
-      if (p.includes('fish')) return { label: '🐟 Fish', bg: 'var(--cat-fish-bg)', txt: 'var(--cat-fish-txt)', bar: 'var(--cat-fish-bar)' };
+      if (p.includes('salmon') || p.includes('fish') || p.includes('seabass') || p.includes('cod')) return { label: '🐟 Fish', bg: 'var(--cat-fish-bg)', txt: 'var(--cat-fish-txt)', bar: 'var(--cat-fish-bar)' };
       if (p.includes('veg')) return { label: '🌱 Veg', bg: 'var(--cat-veg-bg)', txt: 'var(--cat-veg-txt)', bar: 'var(--cat-veg-bar)' };
       return { label: protein || 'Other', bg: '#f1f5f9', txt: '#475569', bar: '#cbd5e1' };
     }
 
+    // ========================================================
+    // ROBUST INGREDIENT PARSER (HelloFresh, Gousto & Blogs)
+    // ========================================================
     function parseIngredientItem(raw) {
-      const str = raw.trim();
-      let name = str;
-      let qty = 1;
-      let unit = '';
+      let s = raw.trim();
+      
+      // Normalize unicode fractions
+      s = s.replace(/½/g, '0.5')
+           .replace(/¼/g, '0.25')
+           .replace(/¾/g, '0.75')
+           .replace(/⅓/g, '0.33')
+           .replace(/⅔/g, '0.67');
 
-      const matchColon = str.match(/^([^:]+):\s*(\d+(?:\.\d+)?)\s*([a-zA-Z]*)$/);
-      const matchInline = str.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(g|kg|ml|tbsp|tsp)?$/i);
-
+      // 1. Gousto colon format: "chicken breast: 320g", "mustard: 20g"
+      const matchColon = s.match(/^([^:]+):\s*(\d+(?:\.\d+)?)\s*([a-zA-Z]*)$/);
       if (matchColon) {
-        name = matchColon[1].trim();
-        qty = parseFloat(matchColon[2]);
-        unit = matchColon[3].trim().toLowerCase();
-      } else if (matchInline) {
-        name = matchInline[1].trim();
-        qty = parseFloat(matchInline[2]);
-        unit = (matchInline[3] || '').trim().toLowerCase();
+        return {
+          name: matchColon[1].trim(),
+          qty: parseFloat(matchColon[2]),
+          unit: matchColon[3].trim().toLowerCase()
+        };
       }
-      return { name, qty, unit };
+
+      // 2. HelloFresh / Standard Recipe format: "450 grams Potatoes", "1 sachet(s) Chilli Flakes", "0.5 tbsp Honey", "1 unit(s) Passion Fruit"
+      const patternLead = /^(\d+(?:\.\d+)?)\s*(grams?|g|ml|tbsp|tsp|kg|bunch(?:es|\(es\))?|sachet(?:s|\(s\))?|unit(?:s|\(s\))?|pot(?:s|\(s\))?|clove(?:s|\(s\))?|can(?:s|\(s\))?|pack(?:s|\(s\))?|pinch(?:es)?)\s*(?:of\s+)?(.*)$/i;
+      const matchLead = s.match(patternLead);
+      if (matchLead) {
+        const val = parseFloat(matchLead[1]);
+        let u = (matchLead[2] || '').trim().toLowerCase();
+        let nm = matchLead[3].trim();
+
+        if (['gram', 'grams', 'g'].includes(u)) u = 'g';
+        else if (u.startsWith('bunch')) u = ' bunch';
+        else if (u.startsWith('sachet')) u = ' sachet';
+        else if (u.startsWith('clove')) u = ' clove';
+        else if (u.startsWith('unit')) u = '';
+
+        return { name: nm, qty: val, unit: u };
+      }
+
+      // 3. Parentheses format: "baby potatoes (350g)" or "brioche buns (2pcs)"
+      const matchBracket = s.match(/^(.*?)\s*\((?:(\d+(?:\.\d+)?)\s*([a-zA-Z]*))\)$/);
+      if (matchBracket) {
+        return {
+          name: matchBracket[1].trim(),
+          qty: parseFloat(matchBracket[2]),
+          unit: matchBracket[3].trim().toLowerCase()
+        };
+      }
+
+      // 4. Multiplier format: "white potato x4"
+      const matchX = s.match(/^(.*?)\s*x\s*(\d+)$/i);
+      if (matchX) {
+        return {
+          name: matchX[1].trim(),
+          qty: parseFloat(matchX[2]),
+          unit: ''
+        };
+      }
+
+      // 5. Trailing numbers format: "tenderstem broccoli 120g"
+      const matchInline = s.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(g|kg|ml|tbsp|tsp)?$/i);
+      if (matchInline) {
+        return {
+          name: matchInline[1].trim(),
+          qty: parseFloat(matchInline[2]),
+          unit: (matchInline[3] || '').trim().toLowerCase()
+        };
+      }
+
+      return { name: s, qty: 1, unit: '' };
     }
 
     function findStepIngredients(stepText, parsedIngredients) {
@@ -1455,7 +1502,6 @@
       return matched;
     }
 
-    // Normalized root tokens for finding recipe pairings (Option 3)
     function getSignificantTokens(ingredientStr) {
       return (ingredientStr || '')
         .toLowerCase()
@@ -1502,7 +1548,7 @@
     }
 
     // ========================================================
-    // OPTION 2: PANTRY CHIPS BUILDER
+    // PANTRY CHIPS BUILDER
     // ========================================================
     function initPantryChips() {
       const renderChips = (containerId, items) => {
@@ -1572,7 +1618,6 @@
       const sortVal = document.getElementById('sortSelect').value;
       const grid = document.getElementById('recipeGrid');
 
-      // Multi-term tokens (space or comma separated)
       const searchTokens = q ? q.split(/[\s,]+/).filter(Boolean) : [];
 
       let filtered = RECIPES.filter(r => {
@@ -1588,11 +1633,9 @@
         const matchesStar5 = !filterStar5 || recipeRating === 5;
         const matchesStar4 = !filterStar4 || recipeRating >= 4;
 
-        // Search tokens match (AND condition)
         const searchableStr = `${r.title} ${(r.ingredients || []).join(' ')}`.toLowerCase();
         const matchesSearch = searchTokens.length === 0 || searchTokens.every(tok => searchableStr.includes(tok));
 
-        // Option 2 Pantry Matching (Requires matching at least 1 selected pantry item if pantry filter is active)
         let matchesPantry = true;
         let pantryMatchCount = 0;
         if (selectedPantryIngredients.size > 0) {
@@ -1609,7 +1652,6 @@
         return matchesProtein && matchesHP && matchesLC && matchesStar5 && matchesStar4 && matchesSearch && matchesPantry;
       });
 
-      // Sorting
       if (selectedPantryIngredients.size > 0 && sortVal === 'default') {
         filtered.sort((a,b) => (b._pantryMatchCount || 0) - (a._pantryMatchCount || 0));
       } else if (sortVal === 'lastCookedAsc') {
@@ -1711,14 +1753,10 @@
       document.getElementById('mRatingRow').innerHTML = renderStarWidget(recipeKey, rating);
     }
 
-    // ========================================================
-    // OPTION 3: COMPANION RECIPES LOGIC IN MODAL
-    // ========================================================
     function renderCompanionRecipes(currentRecipe) {
       const container = document.getElementById('companionList');
       const section = document.getElementById('companionSection');
 
-      // Find other recipes with highest ingredient overlap
       const candidates = RECIPES
         .filter(other => other.id !== currentRecipe.id && other.title !== currentRecipe.title)
         .map(other => {
@@ -1797,7 +1835,6 @@
         </div>
       `).join('');
 
-      // Populate companion recipes
       renderCompanionRecipes(r);
 
       document.getElementById('detailModal').style.display = 'flex';
@@ -2091,6 +2128,9 @@
       }
     }
 
+    // ==========================================
+    // CONSOLIDATED GROCERY LIST BUILDER
+    // ==========================================
     function openGroceryModal() {
       const agg = buildAggregatedIngredients();
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
@@ -2100,9 +2140,9 @@
         if (item.total > 0 && item.unit) {
           displayQty = `${item.total}${item.unit}`;
         } else if (item.total > 0) {
-          displayQty = `${item.total}`;
+          displayQty = item.total === 1 ? '1' : `${item.total}`;
         } else {
-          displayQty = item.occurrences > 1 ? `×${item.occurrences}` : '1 portion';
+          displayQty = item.occurrences > 1 ? `×${item.occurrences}` : '1';
         }
 
         return `
