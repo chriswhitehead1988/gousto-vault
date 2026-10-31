@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Gousto Vault</title> 
+  <title>Gousto Vault</title>
   <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
       --text-muted: #64748b;
       --radius: 16px;
 
-      /* Category hues */
+      /* Dietary category hues */
       --cat-chicken-bg: #fff7ed;
       --cat-chicken-txt: #c2410c;
       --cat-chicken-bar: #fb923c;
@@ -199,7 +199,12 @@
       justify-content: space-between;
       position: relative;
       overflow: hidden;
+      cursor: pointer;
       transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    }
+    .recipe-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
     }
     .recipe-card::before {
       content: '';
@@ -307,29 +312,18 @@
       background: #f1f5f9;
       border-radius: 6px;
       color: #334155;
-      cursor: pointer;
-      transition: background 0.1s;
     }
-    .ing-tag:hover { background: #e2e8f0; }
 
-    .card-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .btn-action {
-      padding: 9px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: #fff;
+    .card-hint {
       font-size: 12px;
       font-weight: 700;
-      color: var(--text);
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.15s;
-    }
-    .btn-action:hover { background: #f8fafc; }
-    .btn-action.cook {
-      background: #0f172a;
-      color: #fff;
-      border-color: #0f172a;
+      color: var(--brand);
+      text-align: right;
+      margin-top: 4px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 4px;
     }
 
     /* Fixed Bottom Planning Bar */
@@ -360,45 +354,96 @@
       cursor: pointer;
     }
 
-    /* Modals */
+    /* Floating Center Modal Box */
     .modal-overlay {
       display: none;
       position: fixed;
       inset: 0;
       background: rgba(15, 23, 42, 0.65);
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
       z-index: 100;
       justify-content: center;
-      align-items: flex-end;
+      align-items: center;
+      padding: 20px;
     }
-    .modal-sheet {
-      background: #fff;
+    .floating-box {
+      background: #ffffff;
       width: 100%;
-      max-width: 680px;
-      border-radius: 24px 24px 0 0;
-      max-height: 90vh;
+      max-width: 620px;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.22);
+      max-height: 88vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    @keyframes slideUp {
-      from { transform: translateY(100%); }
-      to { transform: translateY(0); }
+    @keyframes popIn {
+      from { transform: scale(0.96); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
     }
     .modal-head {
-      padding: 18px 24px;
+      padding: 20px 24px 16px 24px;
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
+      gap: 12px;
     }
+    .modal-close-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      transition: all 0.15s;
+    }
+    .modal-close-btn:hover { background: #e2e8f0; color: #0f172a; }
     .modal-scroll {
       padding: 20px 24px;
       overflow-y: auto;
       flex: 1;
     }
 
+    .section-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 18px 0 8px 0;
+    }
+
+    /* Floating Modal Ingredients Grid */
+    .modal-ing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .modal-ing-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #f8fafc;
+      border: 1px solid #f1f5f9;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .modal-ing-qty {
+      font-weight: 700;
+      color: var(--brand);
+    }
+
+    /* Cooking Steps */
     .step-item {
       display: flex;
       gap: 12px;
@@ -531,21 +576,31 @@
     <button class="btn-basket" onclick="openGroceryModal()">🛒 View Grocery List</button>
   </div>
 
-  <!-- Instruction Details Sheet -->
+  <!-- FLOATING RECIPE DETAILS BOX -->
   <div class="modal-overlay" id="detailModal" onclick="closeModal('detailModal')">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="floating-box" onclick="event.stopPropagation()">
       <div class="modal-head">
         <div>
-          <h3 id="mTitle" style="margin:0; font-size:18px; font-weight:800;"></h3>
-          <div id="mRatingRow" class="rating-row" style="margin-top:6px;"></div>
+          <h3 id="mTitle" style="margin:0; font-size:20px; font-weight:800; line-height:1.3; color:#0f172a;"></h3>
+          <div style="display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;">
+            <span id="mCategoryTag" class="tag-category"></span>
+            <span id="mPrepTag" style="font-size:12px; font-weight:700; color:#64748b;"></span>
+            <div id="mRatingRow" class="rating-row" style="margin:0;"></div>
+          </div>
         </div>
-        <button onclick="closeModal('detailModal')" style="background:none; border:none; font-size:24px; cursor:pointer; color:#94a3b8;">✕</button>
+        <button class="modal-close-btn" onclick="closeModal('detailModal')">✕</button>
       </div>
+      
       <div class="modal-scroll">
         <div class="macro-bar" id="mMacros"></div>
-        <h4 style="font-size:13px; color:#64748b; text-transform:uppercase; margin:16px 0 8px 0; font-weight:800;">Cooking Steps</h4>
+
+        <div class="section-title">Ingredients Needed</div>
+        <div class="modal-ing-grid" id="mIngredientsList"></div>
+
+        <div class="section-title">Cooking Steps (Click to complete)</div>
         <div id="mSteps"></div>
-        <button class="btn-action cook" style="width:100%; padding:14px; margin-top:14px; font-size:14px;" onclick="startCookFromModal()">🍳 Start Fullscreen Cook Mode</button>
+
+        <button class="btn-basket" style="width:100%; padding:14px; margin-top:14px; font-size:14px; background:#0f172a;" onclick="startCookFromModal()">🍳 Open Fullscreen Cook Mode</button>
       </div>
     </div>
   </div>
@@ -570,24 +625,23 @@
     </div>
   </div>
 
-  <!-- Grocery Modal -->
+  <!-- Consolidated Grocery Modal -->
   <div class="modal-overlay" id="groceryModal" onclick="closeModal('groceryModal')">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="floating-box" onclick="event.stopPropagation()">
       <div class="modal-head">
         <h3 style="margin:0; font-size:18px; font-weight:800;">Consolidated Shopping List</h3>
-        <button onclick="closeModal('groceryModal')" style="background:none; border:none; font-size:24px; cursor:pointer; color:#94a3b8;">✕</button>
+        <button class="modal-close-btn" onclick="closeModal('groceryModal')">✕</button>
       </div>
       <div class="modal-scroll">
         <div id="groceryItems" style="margin-bottom:16px;"></div>
-        <button class="btn-action cook" style="width:100%; padding:14px;" onclick="copyGrocery()">📋 Copy Plain Text to Clipboard</button>
+        <button class="btn-basket" style="width:100%; padding:14px; background:#0f172a;" onclick="copyGrocery()">📋 Copy Plain Text to Clipboard</button>
       </div>
     </div>
   </div>
 
   <script>
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    // Bumping cache key to immediately purge any stale data without quantities
-    const CACHE_KEY = "gousto_recipes_pwa_v4_quantities";
+    const CACHE_KEY = "gousto_recipes_pwa_v5_floating";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -715,7 +769,6 @@
       return { label: protein || 'Other', bg: '#f1f5f9', txt: '#475569', bar: '#cbd5e1' };
     }
 
-    // Helper to parse individual ingredient text like "chicken breast: 320g" or "spring onion: 2"
     function parseIngredientItem(raw) {
       const str = raw.trim();
       let name = str;
@@ -737,7 +790,6 @@
       return { name, qty, unit };
     }
 
-    // Aggregates quantities across planned recipes (sums matching units)
     function buildAggregatedIngredients() {
       const selected = RECIPES.filter(r => plannedIds.has(r.id));
       const agg = {};
@@ -810,7 +862,7 @@
         const rating = ratingsMap[recipeKey] || 0;
 
         return `
-          <div class="recipe-card ${isSelected ? 'selected' : ''}" style="--cat-bar: ${cat.bar};">
+          <div class="recipe-card ${isSelected ? 'selected' : ''}" style="--cat-bar: ${cat.bar};" onclick="openDetails(${r.id})">
             <div>
               <div class="card-head">
                 <h3 class="card-title">${r.title}</h3>
@@ -834,18 +886,17 @@
               </div>
 
               <div class="ing-wrap">
-                ${(r.ingredients||[]).slice(0, 5).map(i => {
+                ${(r.ingredients||[]).slice(0, 4).map(i => {
                   const parsed = parseIngredientItem(i);
                   const displayStr = parsed.unit || parsed.qty > 1 ? `${parsed.name} (${parsed.qty}${parsed.unit})` : parsed.name;
                   return `<span class="ing-tag">${displayStr}</span>`;
                 }).join('')}
-                ${(r.ingredients||[]).length > 5 ? `<span class="ing-tag" style="background:transparent; color:#94a3b8;">+${r.ingredients.length - 5} more</span>` : ''}
+                ${(r.ingredients||[]).length > 4 ? `<span class="ing-tag" style="background:transparent; color:#94a3b8;">+${r.ingredients.length - 4} more</span>` : ''}
               </div>
             </div>
 
-            <div class="card-footer">
-              <button class="btn-action" onclick="openDetails(${r.id})">Recipe Steps</button>
-              <button class="btn-action cook" onclick="startCook(${r.id})">🍳 Cook</button>
+            <div class="card-hint">
+              <span>View full recipe</span> →
             </div>
           </div>
         `;
@@ -870,8 +921,16 @@
       if (!r) return;
       activeRecipe = r;
       const recipeKey = r.title || r.id;
+      const cat = getProteinStyle(r['protein source'] || r.protein);
 
       document.getElementById('mTitle').innerText = r.title;
+      document.getElementById('mPrepTag').innerText = `⏱ ${r.time || 'N/A'}`;
+      
+      const catTag = document.getElementById('mCategoryTag');
+      catTag.innerText = cat.label;
+      catTag.style.background = cat.bg;
+      catTag.style.color = cat.txt;
+
       renderModalRating(recipeKey);
 
       document.getElementById('mMacros').innerHTML = `
@@ -881,6 +940,19 @@
         <div class="macro-cell fat"><strong>${r['fat (g)']||'-'}g</strong><span>Fat</span></div>
       `;
 
+      // Ingredients Grid
+      document.getElementById('mIngredientsList').innerHTML = (r.ingredients || []).map(i => {
+        const parsed = parseIngredientItem(i);
+        const qtyStr = (parsed.qty > 0 && parsed.unit) ? `${parsed.qty}${parsed.unit}` : (parsed.qty > 1 ? `×${parsed.qty}` : '');
+        return `
+          <div class="modal-ing-item">
+            <span>${parsed.name}</span>
+            <span class="modal-ing-qty">${qtyStr}</span>
+          </div>
+        `;
+      }).join('');
+
+      // Steps List
       const steps = formatSteps(r.instructions);
       document.getElementById('mSteps').innerHTML = steps.map((s, idx) => `
         <div class="step-item" onclick="this.classList.toggle('done')">
@@ -953,7 +1025,6 @@
       document.getElementById('cookOverlay').style.display = 'none';
     }
 
-    // Consolidated Shopping List with Total Quantities
     function openGroceryModal() {
       const agg = buildAggregatedIngredients();
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
