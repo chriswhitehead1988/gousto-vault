@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Gousto Vault</title>
+  <title>Chris' Recipe Database</title>
   <meta name="theme-color" content="#ffffff">
+  <!-- Food / Dinner Emoji Favicon (Hot Pot / Meal 🍲) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍲</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -116,7 +118,7 @@
       align-items: center;
     }
     .logo {
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 800;
       letter-spacing: -0.5px;
       margin: 0;
@@ -174,9 +176,9 @@
       gap: 12px;
       width: 100%;
     }
-    .input-row { display: flex; gap: 10px; flex-wrap: wrap; width: 100%; }
+    .input-row { display: flex; gap: 10px; flex-wrap: wrap; width: 100%; align-items: center; }
     .search-input {
-      flex: 1 1 240px;
+      flex: 1 1 220px;
       padding: 12px 16px;
       font-size: 15px;
       border: 1px solid var(--border);
@@ -212,6 +214,35 @@
       border-color: #a7f3d0;
       color: #047857;
     }
+
+    /* Card vs Table View Switcher */
+    .view-toggle-wrap {
+      display: inline-flex;
+      background: #f1f5f9;
+      padding: 3px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .btn-view-toggle {
+      border: none;
+      background: transparent;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748b;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-view-toggle.active {
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
     .sort-dropdown {
       flex: 0 1 190px;
       padding: 12px 14px;
@@ -286,7 +317,9 @@
       padding: 0;
     }
 
-    /* Responsive Grid */
+    /* ========================================================
+       CARD VIEW GRID
+       ======================================================== */
     .recipe-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
@@ -344,7 +377,7 @@
       border-radius: 10px;
       overflow: hidden;
     }
-    .recipe-card.selected .stepper-wrap {
+    .recipe-card.selected .stepper-wrap, .table-row.selected .stepper-wrap {
       border-color: var(--brand);
       background: #fff1f2;
     }
@@ -359,17 +392,17 @@
       transition: background 0.15s;
     }
     .btn-step:hover { background: #f1f5f9; }
-    .recipe-card.selected .btn-step { color: var(--brand); }
-    .recipe-card.selected .btn-step:hover { background: #ffe4e6; }
+    .recipe-card.selected .btn-step, .table-row.selected .btn-step { color: var(--brand); }
+    .recipe-card.selected .btn-step:hover, .table-row.selected .btn-step:hover { background: #ffe4e6; }
     .step-val {
       padding: 0 4px;
       font-size: 12px;
       font-weight: 700;
       color: var(--text);
-      min-width: 48px;
+      min-width: 44px;
       text-align: center;
     }
-    .recipe-card.selected .step-val { color: var(--brand); }
+    .recipe-card.selected .step-val, .table-row.selected .step-val { color: var(--brand); }
 
     .btn-plan {
       padding: 6px 12px;
@@ -490,6 +523,62 @@
       justify-content: flex-end;
       align-items: center;
       gap: 4px;
+    }
+
+    /* ========================================================
+       TABLE VIEW STYLES
+       ======================================================== */
+    .table-container {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow-x: auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .recipe-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .recipe-table th {
+      background: #f8fafc;
+      padding: 12px 14px;
+      font-weight: 800;
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+    .recipe-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #0f172a;
+      vertical-align: middle;
+    }
+    .recipe-table tr.table-row {
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .recipe-table tr.table-row:hover {
+      background: #f8fafc;
+    }
+    .recipe-table tr.table-row.selected {
+      background: #fffafb;
+    }
+    .table-title {
+      font-weight: 700;
+      color: #0f172a;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .table-macro-val {
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
     }
 
     /* Fixed Bottom Planning Bar */
@@ -748,7 +837,7 @@
     .btn-delete-recipe:hover { background: #ffe4e6; }
 
     /* ========================================================
-       ENHANCED GROCERY MODAL STYLING
+       GROCERY MODAL STYLING
        ======================================================== */
     .grocery-plan-section {
       background: #f8fafc;
@@ -849,7 +938,6 @@
       color: #fff !important;
     }
 
-    /* Plain-Text Copy Backup Box */
     .grocery-raw-box {
       width: 100%;
       height: 90px;
@@ -1159,8 +1247,8 @@
   <!-- PIN LOCK SCREEN -->
   <div id="lockScreen">
     <div class="pin-card">
-      <div style="font-size: 32px; margin-bottom: 6px;">🔒</div>
-      <h3 style="margin: 0; font-size: 20px; font-weight: 800;">Gousto Vault</h3>
+      <div style="font-size: 32px; margin-bottom: 6px;">🍲</div>
+      <h3 style="margin: 0; font-size: 20px; font-weight: 800;">Chris' Recipe Database</h3>
       <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 13px;">Enter PIN to unlock your recipes</p>
       <input type="password" id="pinCode" class="pin-input" maxlength="6" inputmode="numeric" placeholder="••••••" autofocus>
       <button class="btn-basket" style="width: 100%; padding: 14px; font-size: 14px;" onclick="checkPin()">Unlock Vault</button>
@@ -1170,7 +1258,7 @@
 
   <header>
     <div class="header-inner">
-      <h1 class="logo">Gousto <span>Vault</span></h1>
+      <h1 class="logo">Chris' <span>Recipe Database</span></h1>
       <div class="header-actions">
         <button class="btn-header-action" onclick="openImportModal()">📥 Import</button>
         <button class="btn-header-action" onclick="lockApp()">🔒 Lock</button>
@@ -1182,8 +1270,16 @@
   <main>
     <div class="search-card">
       <div class="input-row">
-        <input type="text" id="searchInput" class="search-input" placeholder="Search ingredients (e.g. chicken, rice)..." oninput="render()">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search ingredients or dish title..." oninput="render()">
+        
+        <!-- View Toggle (Cards vs Table) -->
+        <div class="view-toggle-wrap">
+          <button class="btn-view-toggle active" id="btnViewCards" onclick="setViewMode('cards')">⊞ Cards</button>
+          <button class="btn-view-toggle" id="btnViewTable" onclick="setViewMode('table')">☰ Table</button>
+        </div>
+
         <button class="btn-pantry-trigger" id="btnPantryTrigger" onclick="openPantryModal()">🥕 Match Pantry</button>
+        
         <select id="sortSelect" class="sort-dropdown" onchange="render()">
           <option value="default">Default Sort</option>
           <option value="lastCookedAsc">⏳ Least Recently Cooked</option>
@@ -1215,9 +1311,11 @@
       </div>
     </div>
 
-    <!-- Responsive Multi-Column Recipe Grid -->
-    <div class="recipe-grid" id="recipeGrid">
-      <div style="text-align:center; padding:40px; color:#94a3b8; grid-column:1/-1;">Loading recipes from Google Sheets...</div>
+    <!-- Main View Viewport (Renders Cards Grid or Table View) -->
+    <div id="mainViewContainer">
+      <div class="recipe-grid" id="recipeGrid">
+        <div style="text-align:center; padding:40px; color:#94a3b8; grid-column:1/-1;">Loading recipes from Google Sheets...</div>
+      </div>
     </div>
   </main>
 
@@ -1348,9 +1446,7 @@
     </div>
   </div>
 
-  <!-- ========================================================
-       ENHANCED GROCERY MODAL (RECIPES LIST, STEPPERS, SAVE & CLEAR)
-       ======================================================== -->
+  <!-- ENHANCED GROCERY MODAL -->
   <div class="modal-overlay" id="groceryModal" onclick="closeModal('groceryModal')">
     <div class="floating-box" onclick="event.stopPropagation()">
       <div class="modal-head">
@@ -1436,8 +1532,9 @@
 
     // --- MAIN APP CONFIG & DATA ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v22_clipboard_bulletproof";
+    const CACHE_KEY = "gousto_recipes_pwa_v23_table_view";
     const RATINGS_KEY = "gousto_recipe_ratings";
+    const VIEW_MODE_KEY = "gousto_recipe_view_mode";
 
     let RECIPES = [];
     let currentProtein = 'All';
@@ -1445,6 +1542,9 @@
     let filterLC = false;
     let filterStar5 = false;
     let filterStar4 = false;
+
+    // View Mode: 'cards' or 'table'
+    let currentViewMode = localStorage.getItem(VIEW_MODE_KEY) || 'cards';
 
     // Planned Map: recipeId -> portions (e.g. { 1: 2, 5: 4 })
     let plannedPortionsMap = {};
@@ -1467,6 +1567,14 @@
       produce: ['broccoli', 'mushrooms', 'carrots', 'spinach', 'onion', 'spring onion', 'garlic', 'chilli', 'avocado', 'lemon', 'lime', 'greens', 'tomato', 'coriander'],
       cupboard: ['soy sauce', 'tomato paste', 'chopped tomatoes', 'cheddar cheese', 'creme fraiche', 'mustard', 'coconut milk', 'curry powder', 'parmesan', 'honey', 'balsamic']
     };
+
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      localStorage.setItem(VIEW_MODE_KEY, mode);
+      document.getElementById('btnViewCards').classList.toggle('active', mode === 'cards');
+      document.getElementById('btnViewTable').classList.toggle('active', mode === 'table');
+      render();
+    }
 
     function loadRatings() {
       try {
@@ -1552,6 +1660,8 @@
     async function loadData() {
       loadRatings();
       initPantryChips();
+      setViewMode(currentViewMode);
+
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         try { 
@@ -1568,7 +1678,7 @@
         localStorage.setItem(CACHE_KEY, JSON.stringify(data));
         render();
       } catch (err) {
-        if (!cached) document.getElementById('recipeGrid').innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">Could not load recipes.</div>';
+        if (!cached) document.getElementById('mainViewContainer').innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">Could not load recipes.</div>';
       }
     }
 
@@ -1867,10 +1977,13 @@
       render();
     }
 
+    // ========================================================
+    // RENDER: SUPPORTS CARDS & TABLE VIEW MODES
+    // ========================================================
     function render() {
       const q = document.getElementById('searchInput').value.toLowerCase().trim();
       const sortVal = document.getElementById('sortSelect').value;
-      const grid = document.getElementById('recipeGrid');
+      const mainContainer = document.getElementById('mainViewContainer');
 
       const searchTokens = q ? q.split(/[\s,]+/).filter(Boolean) : [];
 
@@ -1937,70 +2050,141 @@
       }
 
       if (filtered.length === 0) {
-        grid.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8; grid-column:1/-1;">No matching recipes found. Try clearing your search or pantry filter.</div>';
+        mainContainer.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;">No matching recipes found. Try clearing your search or pantry filter.</div>';
         return;
       }
 
-      grid.innerHTML = filtered.map(r => {
-        const plannedPortions = plannedPortionsMap[r.id] || 0;
-        const isSelected = plannedPortions > 0;
-        const cat = getProteinStyle(r['protein source'] || r.protein);
-        const prot = parseFloat(r['protein (g)']) || 0;
-        const carbs = parseFloat(r['carbs (g)']) || 0;
-        const recipeKey = r.title || r.id;
-        const rating = ratingsMap[recipeKey] || parseInt(r.rating) || 0;
-        const cookedInfo = formatLastCookedRelative(r['last cooked']);
+      // ==========================================
+      // VIEW A: TABLE VIEW
+      // ==========================================
+      if (currentViewMode === 'table') {
+        mainContainer.innerHTML = `
+          <div class="table-container">
+            <table class="recipe-table">
+              <thead>
+                <tr>
+                  <th>Dish Title</th>
+                  <th>Protein</th>
+                  <th>Prep Time</th>
+                  <th>Calories</th>
+                  <th>Protein</th>
+                  <th>Carbs</th>
+                  <th>Fat</th>
+                  <th>Rating</th>
+                  <th style="text-align:right;">Meal Plan</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.map(r => {
+                  const plannedPortions = plannedPortionsMap[r.id] || 0;
+                  const isSelected = plannedPortions > 0;
+                  const cat = getProteinStyle(r['protein source'] || r.protein);
+                  const recipeKey = r.title || r.id;
+                  const rating = ratingsMap[recipeKey] || parseInt(r.rating) || 0;
 
-        return `
-          <div class="recipe-card ${isSelected ? 'selected' : ''}" style="--cat-bar: ${cat.bar};" onclick="openDetails(${r.id})">
-            <div>
-              <div class="card-head">
-                <h3 class="card-title">${r.title}</h3>
-                ${isSelected ? `
-                  <div class="stepper-wrap" onclick="event.stopPropagation()">
-                    <button class="btn-step" onclick="adjustPlanPortions(${r.id}, -1, event)">−</button>
-                    <span class="step-val">${plannedPortions}p</span>
-                    <button class="btn-step" onclick="adjustPlanPortions(${r.id}, 1, event)">+</button>
-                  </div>
-                ` : `
-                  <button class="btn-plan" onclick="addDefaultPlan(${r.id}, event)">+ Plan</button>
-                `}
-              </div>
-
-              ${renderStarWidget(recipeKey, rating)}
-
-              <div class="meta-badges">
-                <span class="tag-category" style="background:${cat.bg}; color:${cat.txt};">${cat.label}</span>
-                <span class="tag-prep">⏱ ${r.time || 'N/A'}</span>
-                <span class="badge-cooked ${cookedInfo.isFresh ? 'fresh' : ''}">${cookedInfo.text}</span>
-                ${r._pantryMatchCount > 0 ? `<span class="badge-pantry-match">🥕 Matches ${r._pantryMatchCount} pantry items</span>` : ''}
-                ${prot >= 40 ? '<span class="badge-hp">40g+ P</span>' : ''}
-                ${carbs < 35 && carbs > 0 ? '<span class="badge-lc">&lt;35g C</span>' : ''}
-              </div>
-
-              <div class="macro-bar">
-                <div class="macro-cell kcal"><strong>${r['calories (kcal)']||'-'}</strong><span>kcal/p</span></div>
-                <div class="macro-cell prot"><strong>${r['protein (g)']||'-'}g</strong><span>Prot</span></div>
-                <div class="macro-cell carb"><strong>${r['carbs (g)']||'-'}g</strong><span>Carb</span></div>
-                <div class="macro-cell fat"><strong>${r['fat (g)']||'-'}g</strong><span>Fat</span></div>
-              </div>
-
-              <div class="ing-wrap">
-                ${(r.ingredients||[]).slice(0, 4).map(i => {
-                  const parsed = parseIngredientItem(i);
-                  const displayStr = parsed.unit || parsed.qty > 1 ? `${parsed.name} (${parsed.qty}${parsed.unit})` : parsed.name;
-                  return `<span class="ing-tag">${displayStr}</span>`;
+                  return `
+                    <tr class="table-row ${isSelected ? 'selected' : ''}" onclick="openDetails(${r.id})">
+                      <td class="table-title">
+                        <div style="font-weight:700;">${r.title}</div>
+                        ${r._pantryMatchCount > 0 ? `<span class="badge-pantry-match" style="font-size:10px; margin-top:3px; display:inline-block;">🥕 ${r._pantryMatchCount} pantry matches</span>` : ''}
+                      </td>
+                      <td>
+                        <span class="tag-category" style="background:${cat.bg}; color:${cat.txt};">${cat.label}</span>
+                      </td>
+                      <td style="color:#64748b; font-weight:600;">⏱ ${r.time || 'N/A'}</td>
+                      <td class="table-macro-val" style="color:var(--macro-cal);">${r['calories (kcal)'] || '-'}</td>
+                      <td class="table-macro-val" style="color:var(--macro-prot);">${r['protein (g)'] || '-'}g</td>
+                      <td class="table-macro-val" style="color:var(--macro-carb);">${r['carbs (g)'] || '-'}g</td>
+                      <td class="table-macro-val" style="color:var(--macro-fat);">${r['fat (g)'] || '-'}g</td>
+                      <td onclick="event.stopPropagation()">${renderStarWidget(recipeKey, rating)}</td>
+                      <td style="text-align:right;" onclick="event.stopPropagation()">
+                        ${isSelected ? `
+                          <div class="stepper-wrap" style="background:#fff;">
+                            <button class="btn-step" onclick="adjustPlanPortions(${r.id}, -1, event)">−</button>
+                            <span class="step-val">${plannedPortions}p</span>
+                            <button class="btn-step" onclick="adjustPlanPortions(${r.id}, 1, event)">+</button>
+                          </div>
+                        ` : `
+                          <button class="btn-plan" onclick="addDefaultPlan(${r.id}, event)">+ Plan</button>
+                        `}
+                      </td>
+                    </tr>
+                  `;
                 }).join('')}
-                ${(r.ingredients||[]).length > 4 ? `<span class="ing-tag" style="background:transparent; color:#94a3b8;">+${r.ingredients.length - 4} more</span>` : ''}
-              </div>
-            </div>
-
-            <div class="card-hint">
-              <span>View full recipe</span> →
-            </div>
+              </tbody>
+            </table>
           </div>
         `;
-      }).join('');
+        return;
+      }
+
+      // ==========================================
+      // VIEW B: CARD VIEW (DEFAULT)
+      // ==========================================
+      mainContainer.innerHTML = `
+        <div class="recipe-grid">
+          ${filtered.map(r => {
+            const plannedPortions = plannedPortionsMap[r.id] || 0;
+            const isSelected = plannedPortions > 0;
+            const cat = getProteinStyle(r['protein source'] || r.protein);
+            const prot = parseFloat(r['protein (g)']) || 0;
+            const carbs = parseFloat(r['carbs (g)']) || 0;
+            const recipeKey = r.title || r.id;
+            const rating = ratingsMap[recipeKey] || parseInt(r.rating) || 0;
+            const cookedInfo = formatLastCookedRelative(r['last cooked']);
+
+            return `
+              <div class="recipe-card ${isSelected ? 'selected' : ''}" style="--cat-bar: ${cat.bar};" onclick="openDetails(${r.id})">
+                <div>
+                  <div class="card-head">
+                    <h3 class="card-title">${r.title}</h3>
+                    ${isSelected ? `
+                      <div class="stepper-wrap" onclick="event.stopPropagation()">
+                        <button class="btn-step" onclick="adjustPlanPortions(${r.id}, -1, event)">−</button>
+                        <span class="step-val">${plannedPortions}p</span>
+                        <button class="btn-step" onclick="adjustPlanPortions(${r.id}, 1, event)">+</button>
+                      </div>
+                    ` : `
+                      <button class="btn-plan" onclick="addDefaultPlan(${r.id}, event)">+ Plan</button>
+                    `}
+                  </div>
+
+                  ${renderStarWidget(recipeKey, rating)}
+
+                  <div class="meta-badges">
+                    <span class="tag-category" style="background:${cat.bg}; color:${cat.txt};">${cat.label}</span>
+                    <span class="tag-prep">⏱ ${r.time || 'N/A'}</span>
+                    <span class="badge-cooked ${cookedInfo.isFresh ? 'fresh' : ''}">${cookedInfo.text}</span>
+                    ${r._pantryMatchCount > 0 ? `<span class="badge-pantry-match">🥕 Matches ${r._pantryMatchCount} pantry items</span>` : ''}
+                    ${prot >= 40 ? '<span class="badge-hp">40g+ P</span>' : ''}
+                    ${carbs < 35 && carbs > 0 ? '<span class="badge-lc">&lt;35g C</span>' : ''}
+                  </div>
+
+                  <div class="macro-bar">
+                    <div class="macro-cell kcal"><strong>${r['calories (kcal)']||'-'}</strong><span>kcal/p</span></div>
+                    <div class="macro-cell prot"><strong>${r['protein (g)']||'-'}g</strong><span>Prot</span></div>
+                    <div class="macro-cell carb"><strong>${r['carbs (g)']||'-'}g</strong><span>Carb</span></div>
+                    <div class="macro-cell fat"><strong>${r['fat (g)']||'-'}g</strong><span>Fat</span></div>
+                  </div>
+
+                  <div class="ing-wrap">
+                    ${(r.ingredients||[]).slice(0, 4).map(i => {
+                      const parsed = parseIngredientItem(i);
+                      const displayStr = parsed.unit || parsed.qty > 1 ? `${parsed.name} (${parsed.qty}${parsed.unit})` : parsed.name;
+                      return `<span class="ing-tag">${displayStr}</span>`;
+                    }).join('')}
+                    ${(r.ingredients||[]).length > 4 ? `<span class="ing-tag" style="background:transparent; color:#94a3b8;">+${r.ingredients.length - 4} more</span>` : ''}
+                  </div>
+                </div>
+
+                <div class="card-hint">
+                  <span>View full recipe</span> →
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
     }
 
     function formatSteps(raw) {
@@ -2115,6 +2299,7 @@
 
       renderModalRating(recipeKey);
 
+      // Strictly per-portion macros
       document.getElementById('mMacros').innerHTML = `
         <div class="macro-cell kcal"><strong>${r['calories (kcal)']||'-'}</strong><span>kcal / portion</span></div>
         <div class="macro-cell prot"><strong>${r['protein (g)']||'-'}g</strong><span>Protein</span></div>
@@ -2481,7 +2666,6 @@
         return;
       }
 
-      // Build clean lines
       const cleanLines = items.map(item => {
         const cleanTotal = scaleQuantityClean(item.total, 1);
         let qtyStr = '';
@@ -2588,12 +2772,8 @@
       const btn = document.getElementById('btnCopyIngredients');
       const rawBox = document.getElementById('groceryRawBox');
 
-      // Keep backup textarea synchronized
       if (rawBox) rawBox.value = fullText;
 
-      let copied = false;
-
-      // 1. Primary: Try modern Clipboard API
       if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(fullText)
           .then(() => showCopySuccess(btn))
@@ -2608,7 +2788,6 @@
         const textarea = document.createElement("textarea");
         textarea.value = text;
         textarea.setAttribute("readonly", "");
-        // Keep in viewport to prevent mobile focus rejection
         textarea.style.position = "fixed";
         textarea.style.top = "10px";
         textarea.style.left = "10px";
@@ -2628,7 +2807,6 @@
         if (success) {
           showCopySuccess(btn);
         } else {
-          // If browser policy blocks it, select the visible box for instant manual copy
           const rawBox = document.getElementById('groceryRawBox');
           if (rawBox) {
             rawBox.focus();
