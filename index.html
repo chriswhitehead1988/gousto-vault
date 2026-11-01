@@ -1405,7 +1405,7 @@
 
     // --- MAIN APP CONFIG & DATA ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v19_grocery_features";
+    const CACHE_KEY = "gousto_recipes_pwa_v20_clean_copy";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -1420,8 +1420,8 @@
     let ratingsMap = {};
 
     // Grocery Modal Live Working State
-    let groceryDraftPortions = {}; // recipeId -> portions
-    let groceryDraftExcluded = new Set(); // recipeIds unticked in grocery modal
+    let groceryDraftPortions = {};
+    let groceryDraftExcluded = new Set();
 
     let selectedPantryIngredients = new Set();
 
@@ -1754,7 +1754,6 @@
 
       Object.entries(sourceMap).forEach(([idStr, portions]) => {
         const id = parseInt(idStr);
-        // Exclude if unchecked in draft modal
         if (customPortionsMap && groceryDraftExcluded.has(id)) return;
         if (portions <= 0) return;
 
@@ -2089,6 +2088,7 @@
 
       renderModalRating(recipeKey);
 
+      // Strictly per-portion macros
       document.getElementById('mMacros').innerHTML = `
         <div class="macro-cell kcal"><strong>${r['calories (kcal)']||'-'}</strong><span>kcal / portion</span></div>
         <div class="macro-cell prot"><strong>${r['protein (g)']||'-'}g</strong><span>Protein</span></div>
@@ -2403,10 +2403,9 @@
     }
 
     // ========================================================
-    // ENHANCED GROCERY MODAL LOGIC (DRAFTING, STEPPERS, SAVE, CLEAR)
+    // GROCERY MODAL LOGIC (DRAFTING, STEPPERS, SAVE, CLEAR)
     // ========================================================
     function openGroceryModal() {
-      // Clone current plan into working draft
       groceryDraftPortions = { ...plannedPortionsMap };
       groceryDraftExcluded = new Set();
       renderGroceryModalContent();
@@ -2428,7 +2427,6 @@
       const activeCount = mealIds.filter(id => !groceryDraftExcluded.has(id)).length;
       summaryEl.innerText = `${activeCount} of ${mealIds.length} active`;
 
-      // 1. Render Recipe Checklist with Inline Steppers
       mealsListEl.innerHTML = mealIds.map(id => {
         const r = RECIPES.find(item => item.id === id);
         if (!r) return '';
@@ -2450,7 +2448,6 @@
         `;
       }).join('');
 
-      // 2. Render Consolidated Ingredients for Active Meals
       const agg = buildAggregatedIngredients(groceryDraftPortions);
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
@@ -2498,7 +2495,6 @@
     }
 
     function saveGroceryChanges() {
-      // Commit draft changes to actual app plan
       const nextPlan = {};
       Object.entries(groceryDraftPortions).forEach(([idStr, portions]) => {
         const id = parseInt(idStr);
@@ -2524,12 +2520,11 @@
       }
     }
 
-  function copyGrocery() {
-      // Generate clean list using current active draft selection
+    // Updated: Only copies clean ingredients list without headers or "[ ]"
+    function copyGrocery() {
       const agg = buildAggregatedIngredients(groceryDraftPortions);
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-      // Format each ingredient as just "name (qty)" without "[ ]"
       const lines = items.map(item => {
         const cleanTotal = scaleQuantityClean(item.total, 1);
         const qtyStr = (cleanTotal > 0 && item.unit) ? ` (${cleanTotal}${item.unit})` : (cleanTotal > 0 ? ` (${cleanTotal})` : '');
