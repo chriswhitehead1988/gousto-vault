@@ -836,14 +836,39 @@
       background: #0f172a;
       color: #fff;
       border: none;
-      padding: 12px;
+      padding: 14px;
       border-radius: 12px;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 700;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: all 0.2s;
     }
     .btn-grocery-copy:hover { background: #1e293b; }
+    .btn-grocery-copy.copied-active {
+      background: #16a34a !important;
+      color: #fff !important;
+    }
+
+    /* Plain-Text Copy Backup Box */
+    .grocery-raw-box {
+      width: 100%;
+      height: 90px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.4;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: #334155;
+      resize: vertical;
+      outline: none;
+    }
+    .grocery-raw-box:focus {
+      background: #fff;
+      border-color: var(--brand);
+    }
 
     .grocery-row {
       display: flex;
@@ -1354,7 +1379,13 @@
         <div class="grocery-action-grid">
           <button class="btn-grocery-save" onclick="saveGroceryChanges()">💾 Save Changes</button>
           <button class="btn-grocery-clear" onclick="clearEntireGroceryList()">🗑 Clear All</button>
-          <button class="btn-grocery-copy" onclick="copyGrocery()">📋 Copy Plain Text to Clipboard</button>
+          <button class="btn-grocery-copy" id="btnCopyIngredients" onclick="copyGrocery()">📋 Copy Ingredients List</button>
+        </div>
+
+        <!-- Plain-Text View (tap to select all) -->
+        <div style="margin-top:16px;">
+          <div class="section-title" style="margin:0 0 6px 0;">Plain Text View (Tap to select all)</div>
+          <textarea id="groceryRawBox" class="grocery-raw-box" readonly onclick="this.select();"></textarea>
         </div>
       </div>
     </div>
@@ -1405,7 +1436,7 @@
 
     // --- MAIN APP CONFIG & DATA ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v21_clipboard_fix";
+    const CACHE_KEY = "gousto_recipes_pwa_v22_clipboard_bulletproof";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -1571,9 +1602,6 @@
       render();
     }
 
-    // ==========================================
-    // PORTION MULTIPLIER & PLANNING LOGIC
-    // ==========================================
     function adjustPlanPortions(id, delta, e) {
       if (e) e.stopPropagation();
       const current = plannedPortionsMap[id] || 0;
@@ -1589,7 +1617,7 @@
 
     function addDefaultPlan(id, e) {
       if (e) e.stopPropagation();
-      plannedPortionsMap[id] = 2; // Default recipe yield is 2 portions
+      plannedPortionsMap[id] = 2;
       updatePlanner();
       render();
     }
@@ -1609,7 +1637,7 @@
           const p = plannedPortionsMap[id];
           totalPortions += p;
 
-          const r = RECIPES.find(item => item.id === id);
+          const r = RECIPES.find(item => item.id == id);
           if (r) {
             tCal += parseFloat(r['calories (kcal)']) || 0;
             tProt += parseFloat(r['protein (g)']) || 0;
@@ -1634,7 +1662,7 @@
     }
 
     function parseIngredientItem(raw) {
-      let s = raw.trim();
+      let s = String(raw || '').trim();
       s = s.replace(/½/g, '0.5')
            .replace(/¼/g, '0.25')
            .replace(/¾/g, '0.75')
@@ -1747,7 +1775,6 @@
       return shared;
     }
 
-    // Consolidated Shopping List using recipe portions / 2 (supports grocery modal draft state)
     function buildAggregatedIngredients(customPortionsMap = null) {
       const agg = {};
       const sourceMap = customPortionsMap || plannedPortionsMap;
@@ -1757,7 +1784,7 @@
         if (customPortionsMap && groceryDraftExcluded.has(id)) return;
         if (portions <= 0) return;
 
-        const r = RECIPES.find(item => item.id === id);
+        const r = RECIPES.find(item => item.id == id);
         if (!r) return;
 
         const multiplier = portions / 2.0;
@@ -2065,7 +2092,7 @@
     }
 
     function openDetails(id) {
-      const r = RECIPES.find(item => item.id === id);
+      const r = RECIPES.find(item => item.id == id);
       if (!r) return;
       activeRecipe = r;
       modalPortions = plannedPortionsMap[r.id] || 2;
@@ -2088,7 +2115,6 @@
 
       renderModalRating(recipeKey);
 
-      // Strictly per-portion macros
       document.getElementById('mMacros').innerHTML = `
         <div class="macro-cell kcal"><strong>${r['calories (kcal)']||'-'}</strong><span>kcal / portion</span></div>
         <div class="macro-cell prot"><strong>${r['protein (g)']||'-'}g</strong><span>Protein</span></div>
@@ -2111,9 +2137,6 @@
       document.getElementById('detailModal').style.display = 'flex';
     }
 
-    // ==========================================
-    // MARK COOKED LOGIC
-    // ==========================================
     async function markRecipeCooked(recipeObj) {
       if (!recipeObj) return;
       const todayStr = new Date().toISOString().split('T')[0];
@@ -2204,9 +2227,6 @@
       if (activeRecipe) startCook(activeRecipe.id, modalPortions);
     }
 
-    // ========================================================
-    // FULLSCREEN COOK MODE & WAKE LOCK
-    // ========================================================
     async function requestWakeLock() {
       try {
         if ('wakeLock' in navigator) {
@@ -2233,7 +2253,7 @@
     });
 
     async function startCook(id, portions = 2) {
-      const r = RECIPES.find(item => item.id === id);
+      const r = RECIPES.find(item => item.id == id);
       if (!r) return;
       activeRecipe = r;
 
@@ -2403,7 +2423,7 @@
     }
 
     // ========================================================
-    // GROCERY MODAL LOGIC (DRAFTING, STEPPERS, SAVE, CLEAR)
+    // ENHANCED GROCERY MODAL (LIVE DRAFTING, STEPPERS, COPY)
     // ========================================================
     function openGroceryModal() {
       groceryDraftPortions = { ...plannedPortionsMap };
@@ -2416,19 +2436,22 @@
       const mealIds = Object.keys(groceryDraftPortions).map(id => parseInt(id));
       const mealsListEl = document.getElementById('groceryMealsList');
       const summaryEl = document.getElementById('groceryMealsSummary');
+      const rawBox = document.getElementById('groceryRawBox');
 
       if (mealIds.length === 0) {
         mealsListEl.innerHTML = '<div style="color:#94a3b8; font-size:13px; padding:6px 0;">No recipes currently planned.</div>';
         summaryEl.innerText = '0 recipes';
         document.getElementById('groceryItems').innerHTML = '<div style="color:#94a3b8; font-size:13px;">Add meals to generate ingredients list.</div>';
+        if (rawBox) rawBox.value = '';
         return;
       }
 
       const activeCount = mealIds.filter(id => !groceryDraftExcluded.has(id)).length;
       summaryEl.innerText = `${activeCount} of ${mealIds.length} active`;
 
+      // 1. Render Planned Meals with Checkboxes & Steppers
       mealsListEl.innerHTML = mealIds.map(id => {
-        const r = RECIPES.find(item => item.id === id);
+        const r = RECIPES.find(item => item.id == id);
         if (!r) return '';
         const isExcluded = groceryDraftExcluded.has(id);
         const p = groceryDraftPortions[id] || 2;
@@ -2448,13 +2471,27 @@
         `;
       }).join('');
 
+      // 2. Render Aggregated Ingredients
       const agg = buildAggregatedIngredients(groceryDraftPortions);
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
       if (items.length === 0) {
         document.getElementById('groceryItems').innerHTML = '<div style="color:#94a3b8; font-size:13px; padding:6px 0;">All meals unchecked. Tick a meal above to view ingredients.</div>';
+        if (rawBox) rawBox.value = '';
         return;
       }
+
+      // Build clean lines
+      const cleanLines = items.map(item => {
+        const cleanTotal = scaleQuantityClean(item.total, 1);
+        let qtyStr = '';
+        if (cleanTotal > 0 && item.unit) {
+          qtyStr = ` (${cleanTotal}${item.unit})`;
+        } else if (cleanTotal > 0) {
+          qtyStr = cleanTotal === 1 ? '' : ` (${cleanTotal})`;
+        }
+        return `${item.displayName}${qtyStr}`;
+      });
 
       document.getElementById('groceryItems').innerHTML = items.map(item => {
         let displayQty = '';
@@ -2474,6 +2511,10 @@
           </div>
         `;
       }).join('');
+
+      if (rawBox) {
+        rawBox.value = cleanLines.join('\n');
+      }
     }
 
     function toggleGroceryMeal(id, isChecked) {
@@ -2521,40 +2562,8 @@
     }
 
     // ========================================================
-    // BULLETPROOF CLIPBOARD ENGINE (PLAIN TEXT ONLY, NO [ ])
+    // BULLETPROOF VIEWPORT-AWARE CLIPBOARD ENGINE
     // ========================================================
-    function copyTextToClipboard(text) {
-      return new Promise((resolve, reject) => {
-        // Modern async clipboard API
-        if (navigator.clipboard && window.isSecureContext) {
-          navigator.clipboard.writeText(text)
-            .then(resolve)
-            .catch(() => fallbackCopy(text, resolve, reject));
-        } else {
-          fallbackCopy(text, resolve, reject);
-        }
-      });
-    }
-
-    function fallbackCopy(text, resolve, reject) {
-      try {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-999999px";
-        textArea.style.top = "-999999px";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        const successful = document.execCommand('copy');
-        document.body.removeChild(textArea);
-        if (successful) resolve();
-        else reject(new Error("execCommand copy failed"));
-      } catch (err) {
-        reject(err);
-      }
-    }
-
     function copyGrocery() {
       const agg = buildAggregatedIngredients(groceryDraftPortions);
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
@@ -2564,17 +2573,88 @@
         return;
       }
 
-      const lines = items.map(item => {
+      const cleanLines = items.map(item => {
         const cleanTotal = scaleQuantityClean(item.total, 1);
-        const qtyStr = (cleanTotal > 0 && item.unit) ? ` (${cleanTotal}${item.unit})` : (cleanTotal > 0 ? ` (${cleanTotal})` : '');
+        let qtyStr = '';
+        if (cleanTotal > 0 && item.unit) {
+          qtyStr = ` (${cleanTotal}${item.unit})`;
+        } else if (cleanTotal > 0) {
+          qtyStr = cleanTotal === 1 ? '' : ` (${cleanTotal})`;
+        }
         return `${item.displayName}${qtyStr}`;
       });
 
-      const fullText = lines.join('\n');
+      const fullText = cleanLines.join('\n');
+      const btn = document.getElementById('btnCopyIngredients');
+      const rawBox = document.getElementById('groceryRawBox');
 
-      copyTextToClipboard(fullText)
-        .then(() => alert("Copied ingredients to clipboard!"))
-        .catch(() => alert("Failed to copy. Please check your browser permissions."));
+      // Keep backup textarea synchronized
+      if (rawBox) rawBox.value = fullText;
+
+      let copied = false;
+
+      // 1. Primary: Try modern Clipboard API
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(fullText)
+          .then(() => showCopySuccess(btn))
+          .catch(() => performExecCopyFallback(fullText, btn));
+      } else {
+        performExecCopyFallback(fullText, btn);
+      }
+    }
+
+    function performExecCopyFallback(text, btn) {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        // Keep in viewport to prevent mobile focus rejection
+        textarea.style.position = "fixed";
+        textarea.style.top = "10px";
+        textarea.style.left = "10px";
+        textarea.style.width = "20px";
+        textarea.style.height = "20px";
+        textarea.style.opacity = "0.01";
+        textarea.style.fontSize = "16px";
+        document.body.appendChild(textarea);
+
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+
+        const success = document.execCommand("copy");
+        document.body.removeChild(textarea);
+
+        if (success) {
+          showCopySuccess(btn);
+        } else {
+          // If browser policy blocks it, select the visible box for instant manual copy
+          const rawBox = document.getElementById('groceryRawBox');
+          if (rawBox) {
+            rawBox.focus();
+            rawBox.select();
+          }
+          alert("Selected text below. Tap 'Copy' on your device.");
+        }
+      } catch (err) {
+        const rawBox = document.getElementById('groceryRawBox');
+        if (rawBox) {
+          rawBox.focus();
+          rawBox.select();
+        }
+        alert("Selected text below. Tap 'Copy' on your device.");
+      }
+    }
+
+    function showCopySuccess(btn) {
+      if (!btn) return;
+      const originalText = btn.innerHTML;
+      btn.classList.add('copied-active');
+      btn.innerHTML = "✓ Copied to Clipboard!";
+      setTimeout(() => {
+        btn.classList.remove('copied-active');
+        btn.innerHTML = originalText;
+      }, 2000);
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
