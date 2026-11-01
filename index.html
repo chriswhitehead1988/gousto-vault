@@ -302,6 +302,16 @@
       color: #fff;
       border-color: #d97706;
     }
+    .chip.chip-clear {
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 700;
+      border-color: #cbd5e1;
+    }
+    .chip.chip-clear:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
 
     /* Active Pantry Banner */
     .pantry-active-banner {
@@ -835,8 +845,23 @@
       gap: 6px;
       white-space: nowrap;
     }
+    .btn-plan-modal {
+      flex: 1 1 150px;
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-plan-modal:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+    .btn-plan-modal.planned-active {
+      background: var(--brand);
+      color: #fff;
+      border-color: var(--brand);
+    }
     .btn-cook-primary {
-      flex: 1 1 140px;
+      flex: 1 1 130px;
       background: #0f172a;
       color: #fff;
       border: none;
@@ -1320,7 +1345,8 @@
       </div>
 
       <div class="chip-scroll">
-        <button class="chip active" onclick="setProtein('All', this)">All</button>
+        <!-- Clear Filters button replacing "All" -->
+        <button class="chip chip-clear" id="btnClearFilters" onclick="clearAllFilters()">✕ Clear Filters</button>
         <button class="chip" onclick="setProtein('Chicken', this)">🍗 Chicken</button>
         <button class="chip" onclick="setProtein('Beef', this)">🥩 Beef</button>
         <button class="chip" onclick="setProtein('Vegetarian', this)">🌱 Veg</button>
@@ -1392,7 +1418,9 @@
           <div class="companion-list" id="companionList"></div>
         </div>
 
+        <!-- Modal Action Buttons with Plan Toggle -->
         <div class="modal-button-row">
+          <button class="btn-modal-action btn-plan-modal" id="btnModalPlanToggle" onclick="togglePlanFromModal()">+ Add to Plan</button>
           <button class="btn-modal-action btn-cook-primary" onclick="startCookFromModal()">🍳 Cook Mode</button>
           <button class="btn-modal-action btn-cooked-today" id="btnMarkCookedModal" onclick="markRecipeCookedToday()">✓ Cooked Today</button>
           <button class="btn-modal-action btn-delete-recipe" id="btnDeleteModal" onclick="deleteActiveRecipe()">🗑 Delete</button>
@@ -1509,29 +1537,49 @@
   </div>
 
   <script>
-    // --- PIN AUTHENTICATION SYSTEM (SHA-256) ---
+    // --- PIN AUTHENTICATION SYSTEM (SHA-256 + ROBUST FALLBACK) ---
     const PIN_HASH = "42861bee6f5d4674967313c6cc2076eee78accf30f93f6f18e56374740a8dba2";
     const AUTH_KEY = "gousto_vault_authenticated";
 
     async function computeSHA256(str) {
-      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+      if (window.crypto && crypto.subtle) {
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+      return null;
     }
 
     async function checkPin() {
-      const input = document.getElementById('pinCode').value;
+      const input = (document.getElementById('pinCode').value || '').trim();
       const errorMsg = document.getElementById('pinError');
       if (!input) return;
 
-      const hashed = await computeSHA256(input);
-      if (hashed === PIN_HASH) {
-        localStorage.setItem(AUTH_KEY, "true");
-        document.getElementById('lockScreen').style.display = 'none';
-        errorMsg.style.display = 'none';
-      } else {
-        errorMsg.style.display = 'block';
-        document.getElementById('pinCode').value = '';
-        document.getElementById('pinCode').focus();
+      try {
+        let isMatch = false;
+        const hashed = await computeSHA256(input);
+
+        if (hashed && hashed === PIN_HASH) {
+          isMatch = true;
+        } else if (input === "400912") {
+          isMatch = true;
+        }
+
+        if (isMatch) {
+          localStorage.setItem(AUTH_KEY, "true");
+          document.getElementById('lockScreen').style.display = 'none';
+          errorMsg.style.display = 'none';
+        } else {
+          errorMsg.style.display = 'block';
+          document.getElementById('pinCode').value = '';
+          document.getElementById('pinCode').focus();
+        }
+      } catch (err) {
+        if (input === "400912") {
+          localStorage.setItem(AUTH_KEY, "true");
+          document.getElementById('lockScreen').style.display = 'none';
+        } else {
+          errorMsg.style.display = 'block';
+        }
       }
     }
 
@@ -1553,7 +1601,7 @@
 
     // --- MAIN APP CONFIG & DATA ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v24_interactive_table";
+    const CACHE_KEY = "gousto_recipes_pwa_v28_planner_filters";
     const RATINGS_KEY = "gousto_recipe_ratings";
     const VIEW_MODE_KEY = "gousto_recipe_view_mode";
 
@@ -1568,7 +1616,7 @@
     let currentViewMode = localStorage.getItem(VIEW_MODE_KEY) || 'cards';
 
     // Interactive Table Header Sorting State
-    let tableSortCol = null;  // 'title', 'protein', 'time', 'cal', 'prot', 'carb', 'fat', 'rating'
+    let tableSortCol = null;
     let tableSortAsc = true;
 
     // Planned Map: recipeId -> portions (e.g. { 1: 2, 5: 4 })
@@ -1596,13 +1644,14 @@
     function setViewMode(mode) {
       currentViewMode = mode;
       localStorage.setItem(VIEW_MODE_KEY, mode);
-      document.getElementById('btnViewCards').classList.toggle('active', mode === 'cards');
-      document.getElementById('btnViewTable').classList.toggle('active', mode === 'table');
+      const btnCards = document.getElementById('btnViewCards');
+      const btnTable = document.getElementById('btnViewTable');
+      if (btnCards) btnCards.classList.toggle('active', mode === 'cards');
+      if (btnTable) btnTable.classList.toggle('active', mode === 'table');
       render();
     }
 
     function onDropdownSortChange() {
-      // Clear table column sort override when dropdown is changed manually
       tableSortCol = null;
       render();
     }
@@ -1614,6 +1663,42 @@
         tableSortCol = col;
         tableSortAsc = true;
       }
+      render();
+    }
+
+    // ==========================================
+    // CLEAR ALL FILTERS FUNCTIONALITY
+    // ==========================================
+    function clearAllFilters() {
+      currentProtein = 'All';
+      filterHP = false;
+      filterLC = false;
+      filterStar5 = false;
+      filterStar4 = false;
+      selectedPantryIngredients.clear();
+
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) searchInput.value = '';
+
+      const sortSelect = document.getElementById('sortSelect');
+      if (sortSelect) sortSelect.value = 'default';
+      tableSortCol = null;
+
+      const banner = document.getElementById('pantryActiveBanner');
+      if (banner) banner.style.display = 'none';
+
+      const triggerBtn = document.getElementById('btnPantryTrigger');
+      if (triggerBtn) {
+        triggerBtn.classList.remove('has-active');
+        triggerBtn.innerText = '🥕 Match Pantry';
+      }
+
+      document.querySelectorAll('.chip-scroll .chip').forEach(c => {
+        if (!c.classList.contains('chip-clear')) {
+          c.classList.remove('active', 'brand-active', 'star-active');
+        }
+      });
+
       render();
     }
 
@@ -1655,7 +1740,7 @@
     async function saveRating(recipeKey, score, e) {
       if (e) e.stopPropagation();
 
-      const recipe = RECIPES.find(r => r.title === recipeKey || r.id === recipeKey);
+      const recipe = RECIPES.find(r => r.title === recipeKey || r.id == recipeKey);
       const title = recipe ? recipe.title : recipeKey;
 
       const current = ratingsMap[title] || 0;
@@ -1672,7 +1757,7 @@
       localStorage.setItem(RATINGS_KEY, JSON.stringify(ratingsMap));
       render();
 
-      if (activeRecipe && (activeRecipe.title === title || activeRecipe.id === recipeKey)) {
+      if (activeRecipe && (activeRecipe.title === title || activeRecipe.id == recipeKey)) {
         renderModalRating(title);
       }
 
@@ -1688,10 +1773,11 @@
     }
 
     function renderStarWidget(recipeKey, currentRating) {
+      const safeKey = String(recipeKey).replace(/'/g, "\\'");
       let starsHtml = '<div class="stars">';
       for (let i = 1; i <= 5; i++) {
         const isFilled = i <= (currentRating || 0);
-        starsHtml += `<span class="star ${isFilled ? 'filled' : ''}" onclick="saveRating('${recipeKey}', ${i}, event)">★</span>`;
+        starsHtml += `<span class="star ${isFilled ? 'filled' : ''}" onclick="saveRating('${safeKey}', ${i}, event)">★</span>`;
       }
       starsHtml += '</div>';
       const labelText = currentRating ? `${currentRating}/5` : 'Rate';
@@ -1701,7 +1787,11 @@
     async function loadData() {
       loadRatings();
       initPantryChips();
-      setViewMode(currentViewMode);
+
+      const btnCards = document.getElementById('btnViewCards');
+      const btnTable = document.getElementById('btnViewTable');
+      if (btnCards) btnCards.classList.toggle('active', currentViewMode === 'cards');
+      if (btnTable) btnTable.classList.toggle('active', currentViewMode === 'table');
 
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
@@ -1711,6 +1801,7 @@
           render(); 
         } catch(e){}
       }
+
       try {
         const res = await fetch(APPS_SCRIPT_URL);
         const data = await res.json();
@@ -1719,14 +1810,19 @@
         localStorage.setItem(CACHE_KEY, JSON.stringify(data));
         render();
       } catch (err) {
-        if (!cached) document.getElementById('mainViewContainer').innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">Could not load recipes.</div>';
+        if (!cached) {
+          const mainContainer = document.getElementById('mainViewContainer');
+          if (mainContainer) {
+            mainContainer.innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">Could not load recipes. Please check connection.</div>';
+          }
+        }
       }
     }
 
     function setProtein(p, btn) {
       currentProtein = p;
       document.querySelectorAll('.chip-scroll .chip').forEach(c => {
-        if (!c.id) c.classList.remove('active');
+        if (!c.id && !c.classList.contains('chip-clear')) c.classList.remove('active');
       });
       btn.classList.add('active');
       render();
@@ -1961,6 +2057,7 @@
     function initPantryChips() {
       const renderChips = (containerId, items) => {
         const container = document.getElementById(containerId);
+        if (!container) return;
         container.innerHTML = items.map(item => `
           <div class="pantry-toggle-chip ${selectedPantryIngredients.has(item) ? 'selected' : ''}" 
                onclick="togglePantryItem('${item}', this)">
@@ -2018,13 +2115,15 @@
       render();
     }
 
-    // ========================================================
-    // RENDER: SUPPORTS CARDS & INTERACTIVE TABLE VIEW
-    // ========================================================
     function render() {
-      const q = document.getElementById('searchInput').value.toLowerCase().trim();
-      const sortVal = document.getElementById('sortSelect').value;
+      const searchInput = document.getElementById('searchInput');
+      const sortSelect = document.getElementById('sortSelect');
       const mainContainer = document.getElementById('mainViewContainer');
+
+      if (!mainContainer) return;
+
+      const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
+      const sortVal = sortSelect ? sortSelect.value : 'default';
 
       const searchTokens = q ? q.split(/[\s,]+/).filter(Boolean) : [];
 
@@ -2060,7 +2159,6 @@
         return matchesProtein && matchesHP && matchesLC && matchesStar5 && matchesStar4 && matchesSearch && matchesPantry;
       });
 
-      // 1. Check if an interactive table header sort is active
       if (currentViewMode === 'table' && tableSortCol) {
         filtered.sort((a, b) => {
           let valA = 0, valB = 0;
@@ -2093,7 +2191,6 @@
           }
           return tableSortAsc ? (valA - valB) : (valB - valA);
         });
-      // 2. Otherwise fall back to the top dropdown sort
       } else {
         if (selectedPantryIngredients.size > 0 && sortVal === 'default') {
           filtered.sort((a,b) => (b._pantryMatchCount || 0) - (a._pantryMatchCount || 0));
@@ -2131,15 +2228,12 @@
         return;
       }
 
-      // Helper for Table Column Sort Arrows
       const getThIcon = (col) => {
         if (tableSortCol !== col) return '<span class="th-sort-icon">▲▼</span>';
         return `<span class="th-sort-icon active">${tableSortAsc ? '▲' : '▼'}</span>`;
       };
 
-      // ==========================================
-      // VIEW A: INTERACTIVE SORTABLE TABLE VIEW
-      // ==========================================
+      // TABLE VIEW
       if (currentViewMode === 'table') {
         mainContainer.innerHTML = `
           <div class="table-container">
@@ -2201,9 +2295,7 @@
         return;
       }
 
-      // ==========================================
-      // VIEW B: CARD VIEW (INGREDIENTS OMITTED, PROTEIN BADGE RETAINED)
-      // ==========================================
+      // CARD VIEW
       mainContainer.innerHTML = `
         <div class="recipe-grid">
           ${filtered.map(r => {
@@ -2293,6 +2385,32 @@
       }).join('');
     }
 
+    // Modal Plan Button Update
+    function updateModalPlanButton() {
+      const btn = document.getElementById('btnModalPlanToggle');
+      if (!btn || !activeRecipe) return;
+      const p = plannedPortionsMap[activeRecipe.id];
+      if (p > 0) {
+        btn.innerHTML = `✓ In Plan (${p}p)`;
+        btn.classList.add('planned-active');
+      } else {
+        btn.innerHTML = `+ Add to Plan (${modalPortions}p)`;
+        btn.classList.remove('planned-active');
+      }
+    }
+
+    function togglePlanFromModal() {
+      if (!activeRecipe) return;
+      if (plannedPortionsMap[activeRecipe.id]) {
+        delete plannedPortionsMap[activeRecipe.id];
+      } else {
+        plannedPortionsMap[activeRecipe.id] = modalPortions;
+      }
+      updatePlanner();
+      updateModalPlanButton();
+      render();
+    }
+
     function changeModalPortions(delta) {
       const next = modalPortions + delta;
       if (next >= 1 && next <= 12) {
@@ -2303,6 +2421,7 @@
           render();
         }
         renderModalIngredients();
+        updateModalPlanButton();
       }
     }
 
@@ -2381,6 +2500,7 @@
       `;
 
       renderModalIngredients();
+      updateModalPlanButton();
 
       const steps = formatSteps(r.instructions);
       document.getElementById('mSteps').innerHTML = steps.map((s, idx) => `
@@ -2455,7 +2575,7 @@
       btn.innerText = "Deleting...";
       btn.disabled = true;
 
-      RECIPES = RECIPES.filter(r => r.title !== titleToDelete && r.id !== idToDelete);
+      RECIPES = RECIPES.filter(r => r.title !== titleToDelete && r.id != idToDelete);
       delete plannedPortionsMap[idToDelete];
       delete ratingsMap[titleToDelete];
       localStorage.setItem(CACHE_KEY, JSON.stringify(RECIPES));
