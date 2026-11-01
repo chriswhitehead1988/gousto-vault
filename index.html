@@ -2524,30 +2524,21 @@
       }
     }
 
-    function copyGrocery() {
+  function copyGrocery() {
       // Generate clean list using current active draft selection
       const agg = buildAggregatedIngredients(groceryDraftPortions);
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
+      // Format each ingredient as just "name (qty)" without "[ ]"
       const lines = items.map(item => {
         const cleanTotal = scaleQuantityClean(item.total, 1);
         const qtyStr = (cleanTotal > 0 && item.unit) ? ` (${cleanTotal}${item.unit})` : (cleanTotal > 0 ? ` (${cleanTotal})` : '');
-        return `[ ] ${item.displayName}${qtyStr}`;
+        return `${item.displayName}${qtyStr}`;
       });
 
-      const activeMealIds = Object.keys(groceryDraftPortions)
-        .map(id => parseInt(id))
-        .filter(id => !groceryDraftExcluded.has(id));
+      const fullText = lines.join('\n');
 
-      const plannedSummary = activeMealIds.map(id => {
-        const r = RECIPES.find(item => item.id === id);
-        const p = groceryDraftPortions[id];
-        return r ? `- ${r.title} (${p} portions)` : '';
-      }).filter(Boolean);
-
-      const fullText = `GOUSTO SHOPPING LIST:\n\nPlanned Meals:\n${plannedSummary.join('\n')}\n\nItems to Buy:\n${lines.join('\n')}`;
-
-      navigator.clipboard.writeText(fullText).then(() => alert("Copied consolidated grocery list to clipboard!"));
+      navigator.clipboard.writeText(fullText).then(() => alert("Copied ingredients to clipboard!"));
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
