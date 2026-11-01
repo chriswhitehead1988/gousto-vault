@@ -366,7 +366,7 @@
       font-size: 12px;
       font-weight: 700;
       color: var(--text);
-      min-width: 52px;
+      min-width: 48px;
       text-align: center;
     }
     .recipe-card.selected .step-val { color: var(--brand); }
@@ -747,6 +747,118 @@
     }
     .btn-delete-recipe:hover { background: #ffe4e6; }
 
+    /* ========================================================
+       ENHANCED GROCERY MODAL STYLING
+       ======================================================== */
+    .grocery-plan-section {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 18px;
+    }
+    .grocery-plan-header {
+      font-size: 12px;
+      font-weight: 800;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .grocery-meal-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #edf2f7;
+    }
+    .grocery-meal-row:last-child {
+      border-bottom: none;
+    }
+    .grocery-meal-check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      cursor: pointer;
+      user-select: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .grocery-meal-check.excluded {
+      color: #94a3b8;
+      text-decoration: line-through;
+    }
+    .grocery-meal-check input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--brand);
+      cursor: pointer;
+    }
+
+    .grocery-action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .btn-grocery-save {
+      background: #16a34a;
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-grocery-save:hover { background: #15803d; }
+    .btn-grocery-clear {
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      color: #e11d48;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-grocery-clear:hover { background: #ffe4e6; }
+    .btn-grocery-copy {
+      grid-column: 1 / -1;
+      background: #0f172a;
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-grocery-copy:hover { background: #1e293b; }
+
+    .grocery-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 14px;
+    }
+    .grocery-row:last-child { border-bottom: none; }
+    .grocery-total {
+      font-weight: 800;
+      color: var(--brand);
+    }
+
     /* Pantry Builder Modal */
     .pantry-category-title {
       font-size: 11px;
@@ -778,20 +890,6 @@
       background: #0f172a;
       border-color: #0f172a;
       color: #fff;
-    }
-
-    .grocery-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #f1f5f9;
-      font-size: 14px;
-    }
-    .grocery-row:last-child { border-bottom: none; }
-    .grocery-total {
-      font-weight: 800;
-      color: var(--brand);
     }
 
     /* Fullscreen Cook Mode */
@@ -1225,16 +1323,39 @@
     </div>
   </div>
 
-  <!-- Consolidated Grocery Modal -->
+  <!-- ========================================================
+       ENHANCED GROCERY MODAL (RECIPES LIST, STEPPERS, SAVE & CLEAR)
+       ======================================================== -->
   <div class="modal-overlay" id="groceryModal" onclick="closeModal('groceryModal')">
     <div class="floating-box" onclick="event.stopPropagation()">
       <div class="modal-head">
-        <h3 style="margin:0; font-size:18px; font-weight:800;">Consolidated Shopping List</h3>
+        <div>
+          <h3 style="margin:0; font-size:18px; font-weight:800;">Shopping List & Meal Plan</h3>
+          <p style="font-size:12px; color:#64748b; margin:4px 0 0 0;">Review planned meals, adjust portions, and export items</p>
+        </div>
         <button class="modal-close-btn" onclick="closeModal('groceryModal')">✕</button>
       </div>
+      
       <div class="modal-scroll">
+        <!-- Selected Recipes with Checkboxes & Portions Stepper -->
+        <div class="grocery-plan-section">
+          <div class="grocery-plan-header">
+            <span>Planned Meals</span>
+            <span id="groceryMealsSummary" style="font-weight:700; color:#0f172a;"></span>
+          </div>
+          <div id="groceryMealsList"></div>
+        </div>
+
+        <!-- Consolidated Ingredients Needed -->
+        <div class="section-title">Consolidated Ingredients</div>
         <div id="groceryItems" style="margin-bottom:16px;"></div>
-        <button class="btn-basket" style="width:100%; padding:14px; background:#0f172a;" onclick="copyGrocery()">📋 Copy Plain Text to Clipboard</button>
+
+        <!-- Action Buttons: Save, Clear, Copy -->
+        <div class="grocery-action-grid">
+          <button class="btn-grocery-save" onclick="saveGroceryChanges()">💾 Save Changes</button>
+          <button class="btn-grocery-clear" onclick="clearEntireGroceryList()">🗑 Clear All</button>
+          <button class="btn-grocery-copy" onclick="copyGrocery()">📋 Copy Plain Text to Clipboard</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1284,7 +1405,7 @@
 
     // --- MAIN APP CONFIG & DATA ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v18_portion_multiplier";
+    const CACHE_KEY = "gousto_recipes_pwa_v19_grocery_features";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -1294,9 +1415,13 @@
     let filterStar5 = false;
     let filterStar4 = false;
 
-    // Planned Map stores: recipeId -> portions (e.g. { 1: 2, 5: 4 })
+    // Planned Map: recipeId -> portions (e.g. { 1: 2, 5: 4 })
     let plannedPortionsMap = {};
     let ratingsMap = {};
+
+    // Grocery Modal Live Working State
+    let groceryDraftPortions = {}; // recipeId -> portions
+    let groceryDraftExcluded = new Set(); // recipeIds unticked in grocery modal
 
     let selectedPantryIngredients = new Set();
 
@@ -1493,7 +1618,6 @@
         });
 
         document.getElementById('plannerCount').innerText = `${count} ${count === 1 ? 'recipe' : 'recipes'} (${totalPortions} portions total)`;
-        // Always strictly per-portion average
         document.getElementById('plannerMacros').innerHTML = `Per-portion avg: <strong>${Math.round(tCal/count)} kcal</strong> • <strong>${Math.round(tProt/count)}g P</strong> • <strong>${Math.round(tCarb/count)}g C</strong>`;
       } else {
         bar.classList.remove('show');
@@ -1623,12 +1747,17 @@
       return shared;
     }
 
-    // Consolidated Shopping List using recipe portions / 2
-    function buildAggregatedIngredients() {
+    // Consolidated Shopping List using recipe portions / 2 (supports grocery modal draft state)
+    function buildAggregatedIngredients(customPortionsMap = null) {
       const agg = {};
+      const sourceMap = customPortionsMap || plannedPortionsMap;
 
-      Object.entries(plannedPortionsMap).forEach(([idStr, portions]) => {
+      Object.entries(sourceMap).forEach(([idStr, portions]) => {
         const id = parseInt(idStr);
+        // Exclude if unchecked in draft modal
+        if (customPortionsMap && groceryDraftExcluded.has(id)) return;
+        if (portions <= 0) return;
+
         const r = RECIPES.find(item => item.id === id);
         if (!r) return;
 
@@ -1884,7 +2013,6 @@
       const next = modalPortions + delta;
       if (next >= 1 && next <= 12) {
         modalPortions = next;
-        // If recipe is already in the plan, sync its planned portions
         if (activeRecipe && plannedPortionsMap[activeRecipe.id]) {
           plannedPortionsMap[activeRecipe.id] = next;
           updatePlanner();
@@ -1961,7 +2089,6 @@
 
       renderModalRating(recipeKey);
 
-      // Strictly per-portion macros
       document.getElementById('mMacros').innerHTML = `
         <div class="macro-cell kcal"><strong>${r['calories (kcal)']||'-'}</strong><span>kcal / portion</span></div>
         <div class="macro-cell prot"><strong>${r['protein (g)']||'-'}g</strong><span>Protein</span></div>
@@ -2275,12 +2402,62 @@
       }
     }
 
-    // ==========================================
-    // CONSOLIDATED GROCERY LIST BUILDER
-    // ==========================================
+    // ========================================================
+    // ENHANCED GROCERY MODAL LOGIC (DRAFTING, STEPPERS, SAVE, CLEAR)
+    // ========================================================
     function openGroceryModal() {
-      const agg = buildAggregatedIngredients();
+      // Clone current plan into working draft
+      groceryDraftPortions = { ...plannedPortionsMap };
+      groceryDraftExcluded = new Set();
+      renderGroceryModalContent();
+      document.getElementById('groceryModal').style.display = 'flex';
+    }
+
+    function renderGroceryModalContent() {
+      const mealIds = Object.keys(groceryDraftPortions).map(id => parseInt(id));
+      const mealsListEl = document.getElementById('groceryMealsList');
+      const summaryEl = document.getElementById('groceryMealsSummary');
+
+      if (mealIds.length === 0) {
+        mealsListEl.innerHTML = '<div style="color:#94a3b8; font-size:13px; padding:6px 0;">No recipes currently planned.</div>';
+        summaryEl.innerText = '0 recipes';
+        document.getElementById('groceryItems').innerHTML = '<div style="color:#94a3b8; font-size:13px;">Add meals to generate ingredients list.</div>';
+        return;
+      }
+
+      const activeCount = mealIds.filter(id => !groceryDraftExcluded.has(id)).length;
+      summaryEl.innerText = `${activeCount} of ${mealIds.length} active`;
+
+      // 1. Render Recipe Checklist with Inline Steppers
+      mealsListEl.innerHTML = mealIds.map(id => {
+        const r = RECIPES.find(item => item.id === id);
+        if (!r) return '';
+        const isExcluded = groceryDraftExcluded.has(id);
+        const p = groceryDraftPortions[id] || 2;
+
+        return `
+          <div class="grocery-meal-row">
+            <label class="grocery-meal-check ${isExcluded ? 'excluded' : ''}">
+              <input type="checkbox" ${!isExcluded ? 'checked' : ''} onchange="toggleGroceryMeal(${id}, this.checked)">
+              <span>${r.title}</span>
+            </label>
+            <div class="stepper-wrap" style="background:#fff;">
+              <button class="btn-step" onclick="changeGroceryPortion(${id}, -1)">−</button>
+              <span class="step-val">${p}p</span>
+              <button class="btn-step" onclick="changeGroceryPortion(${id}, 1)">+</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 2. Render Consolidated Ingredients for Active Meals
+      const agg = buildAggregatedIngredients(groceryDraftPortions);
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+      if (items.length === 0) {
+        document.getElementById('groceryItems').innerHTML = '<div style="color:#94a3b8; font-size:13px; padding:6px 0;">All meals unchecked. Tick a meal above to view ingredients.</div>';
+        return;
+      }
 
       document.getElementById('groceryItems').innerHTML = items.map(item => {
         let displayQty = '';
@@ -2300,12 +2477,56 @@
           </div>
         `;
       }).join('');
+    }
 
-      document.getElementById('groceryModal').style.display = 'flex';
+    function toggleGroceryMeal(id, isChecked) {
+      if (isChecked) {
+        groceryDraftExcluded.delete(id);
+      } else {
+        groceryDraftExcluded.add(id);
+      }
+      renderGroceryModalContent();
+    }
+
+    function changeGroceryPortion(id, delta) {
+      const current = groceryDraftPortions[id] || 2;
+      const next = current + delta;
+      if (next >= 1 && next <= 12) {
+        groceryDraftPortions[id] = next;
+        renderGroceryModalContent();
+      }
+    }
+
+    function saveGroceryChanges() {
+      // Commit draft changes to actual app plan
+      const nextPlan = {};
+      Object.entries(groceryDraftPortions).forEach(([idStr, portions]) => {
+        const id = parseInt(idStr);
+        if (!groceryDraftExcluded.has(id) && portions > 0) {
+          nextPlan[id] = portions;
+        }
+      });
+
+      plannedPortionsMap = nextPlan;
+      updatePlanner();
+      render();
+      closeModal('groceryModal');
+    }
+
+    function clearEntireGroceryList() {
+      if (confirm("Are you sure you want to clear your planned recipes and grocery list?")) {
+        plannedPortionsMap = {};
+        groceryDraftPortions = {};
+        groceryDraftExcluded.clear();
+        updatePlanner();
+        render();
+        renderGroceryModalContent();
+      }
     }
 
     function copyGrocery() {
-      const agg = buildAggregatedIngredients();
+      // Generate clean list using current active draft selection
+      const agg = buildAggregatedIngredients(groceryDraftPortions);
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
       const lines = items.map(item => {
@@ -2314,9 +2535,14 @@
         return `[ ] ${item.displayName}${qtyStr}`;
       });
 
-      const plannedSummary = Object.entries(plannedPortionsMap).map(([idStr, portions]) => {
-        const r = RECIPES.find(item => item.id === parseInt(idStr));
-        return r ? `- ${r.title} (${portions} portions)` : '';
+      const activeMealIds = Object.keys(groceryDraftPortions)
+        .map(id => parseInt(id))
+        .filter(id => !groceryDraftExcluded.has(id));
+
+      const plannedSummary = activeMealIds.map(id => {
+        const r = RECIPES.find(item => item.id === id);
+        const p = groceryDraftPortions[id];
+        return r ? `- ${r.title} (${p} portions)` : '';
       }).filter(Boolean);
 
       const fullText = `GOUSTO SHOPPING LIST:\n\nPlanned Meals:\n${plannedSummary.join('\n')}\n\nItems to Buy:\n${lines.join('\n')}`;
