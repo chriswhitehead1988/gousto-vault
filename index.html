@@ -671,6 +671,7 @@
       justify-content: space-between;
       align-items: flex-start;
       gap: 12px;
+      flex-shrink: 0; /* Keeps header pinned and uncrushed */
     }
     .modal-close-btn {
       width: 32px;
@@ -687,10 +688,15 @@
       transition: all 0.15s;
     }
     .modal-close-btn:hover { background: #e2e8f0; color: #0f172a; }
+
+    /* Modal Scroll Container - Configured with min-height: 0 so flex child can scroll */
     .modal-scroll {
       padding: 20px 24px;
       overflow-y: auto;
-      flex: 1;
+      flex: 1 1 auto;
+      min-height: 0; /* CRITICAL: Enables scrolling inside flex containers */
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
 
     .section-title {
@@ -881,9 +887,7 @@
     }
     .btn-delete-recipe:hover { background: #ffe4e6; }
 
-    /* ========================================================
-       IN-PLACE MODAL EDIT FORM STYLES
-       ======================================================== */
+    /* IN-PLACE MODAL EDIT FORM STYLES */
     .edit-form-group {
       margin-bottom: 14px;
       display: flex;
@@ -1425,7 +1429,7 @@
     <div class="floating-box" onclick="event.stopPropagation()">
       
       <!-- 1. VIEW MODE CONTAINER -->
-      <div id="modalViewContainer">
+      <div id="modalViewContainer" style="display:flex; flex-direction:column; min-height:0; flex:1 1 auto;">
         <div class="modal-head">
           <div>
             <h3 id="mTitle" style="margin:0; font-size:20px; font-weight:800; line-height:1.3; color:#0f172a;"></h3>
@@ -1474,7 +1478,7 @@
       </div>
 
       <!-- 2. IN-PLACE EDIT MODE CONTAINER -->
-      <div id="modalEditContainer" style="display:none; flex-direction:column; height:100%;">
+      <div id="modalEditContainer" style="display:none; flex-direction:column; min-height:0; flex:1 1 auto;">
         <div class="modal-head">
           <div>
             <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">Edit Recipe</h3>
@@ -2568,9 +2572,7 @@
       }).join('');
     }
 
-    // ==========================================
     // IN-PLACE EDIT MODE LOGIC
-    // ==========================================
     function switchToEditMode() {
       if (!activeRecipe) return;
       document.getElementById('modalViewContainer').style.display = 'none';
@@ -2595,7 +2597,7 @@
 
     function cancelEditMode() {
       document.getElementById('modalEditContainer').style.display = 'none';
-      document.getElementById('modalViewContainer').style.display = 'block';
+      document.getElementById('modalViewContainer').style.display = 'flex';
     }
 
     async function submitRecipeEdit() {
@@ -2694,7 +2696,7 @@
       activeRecipe = r;
       modalPortions = plannedPortionsMap[r.id] || 2;
 
-      cancelEditMode(); // Always ensure View mode is showing first
+      cancelEditMode();
 
       const recipeKey = r.title || r.id;
       const cat = getProteinStyle(r['protein source'] || r.protein);
@@ -3158,6 +3160,9 @@
       }
     }
 
+    // ========================================================
+    // BULLETPROOF VIEWPORT-AWARE CLIPBOARD ENGINE
+    // ========================================================
     function copyGrocery() {
       const agg = buildAggregatedIngredients(groceryDraftPortions);
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
