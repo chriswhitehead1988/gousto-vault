@@ -334,6 +334,43 @@
 
     .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
     .card-title { font-size: 16px; font-weight: 700; line-height: 1.35; margin: 0; color: #0f172a; }
+
+    /* Stepper UI */
+    .stepper-wrap {
+      display: inline-flex;
+      align-items: center;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .recipe-card.selected .stepper-wrap {
+      border-color: var(--brand);
+      background: #fff1f2;
+    }
+    .btn-step {
+      background: none;
+      border: none;
+      padding: 5px 9px;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-step:hover { background: #f1f5f9; }
+    .recipe-card.selected .btn-step { color: var(--brand); }
+    .recipe-card.selected .btn-step:hover { background: #ffe4e6; }
+    .step-val {
+      padding: 0 4px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      min-width: 52px;
+      text-align: center;
+    }
+    .recipe-card.selected .step-val { color: var(--brand); }
+
     .btn-plan {
       padding: 6px 12px;
       border-radius: 10px;
@@ -345,11 +382,6 @@
       cursor: pointer;
       transition: all 0.15s;
       white-space: nowrap;
-    }
-    .recipe-card.selected .btn-plan {
-      background: var(--brand);
-      color: #fff;
-      border-color: var(--brand);
     }
 
     .rating-row {
@@ -557,6 +589,23 @@
       margin: 18px 0 8px 0;
     }
 
+    /* Modal Portions Bar */
+    .modal-portion-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .modal-portion-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
     .modal-ing-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -616,7 +665,7 @@
       color: #fff;
     }
 
-    /* Option 3: Companion Recipes UI in Modal */
+    /* Companion Recipes UI */
     .companion-section {
       margin-top: 24px;
       padding-top: 18px;
@@ -787,6 +836,18 @@
       color: #38bdf8;
       background: rgba(56, 189, 248, 0.15);
       border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 2px 6px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .cook-portion-indicator {
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fb923c;
+      background: rgba(251, 146, 60, 0.15);
+      border: 1px solid rgba(251, 146, 60, 0.3);
       padding: 2px 6px;
       border-radius: 6px;
       white-space: nowrap;
@@ -1063,7 +1124,18 @@
       </div>
       
       <div class="modal-scroll">
+        <!-- Strictly Per-Portion Nutrition -->
         <div class="macro-bar" id="mMacros"></div>
+
+        <!-- Portion Scaling Bar inside Details Modal -->
+        <div class="modal-portion-bar">
+          <span class="modal-portion-label">Portions to prepare:</span>
+          <div class="stepper-wrap" style="background:#fff;">
+            <button class="btn-step" onclick="changeModalPortions(-1)">−</button>
+            <span class="step-val" id="modalPortionVal">2 portions</span>
+            <button class="btn-step" onclick="changeModalPortions(1)">+</button>
+          </div>
+        </div>
 
         <div class="section-title">Ingredients Needed</div>
         <div class="modal-ing-grid" id="mIngredientsList"></div>
@@ -1071,7 +1143,7 @@
         <div class="section-title">Cooking Steps (Click to complete)</div>
         <div id="mSteps"></div>
 
-        <!-- Option 3: Companion Recipes (Same Ingredients) -->
+        <!-- Companion Recipes -->
         <div class="companion-section" id="companionSection">
           <div class="section-title" style="margin-top:0;">Pairs Well for Weekly Planning</div>
           <p style="font-size:12px; color:#64748b; margin:0 0 10px 0;">Recipes sharing 2 or more ingredients to minimize shopping:</p>
@@ -1087,7 +1159,7 @@
     </div>
   </div>
 
-  <!-- OPTION 2: PANTRY MATCH MODAL -->
+  <!-- PANTRY MATCH MODAL -->
   <div class="modal-overlay" id="pantryModal" onclick="closeModal('pantryModal')">
     <div class="floating-box" style="max-width: 520px;" onclick="event.stopPropagation()">
       <div class="modal-head">
@@ -1123,6 +1195,7 @@
     <div class="cook-header-bar">
       <div class="cook-recipe-heading">
         <span id="cookTitle">Recipe Title</span>
+        <span class="cook-portion-indicator" id="cookPortionIndicator">2 Portions</span>
         <span class="wake-indicator" id="wakeIndicator">📱 Screen Awake</span>
       </div>
       <div class="cook-header-btns">
@@ -1209,9 +1282,9 @@
       if (e.key === 'Enter') checkPin();
     });
 
-    // --- MAIN APP CONFIG & TWO-WAY RATINGS ---
+    // --- MAIN APP CONFIG & DATA ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v17_front_qty_parser";
+    const CACHE_KEY = "gousto_recipes_pwa_v18_portion_multiplier";
     const RATINGS_KEY = "gousto_recipe_ratings";
 
     let RECIPES = [];
@@ -1220,12 +1293,15 @@
     let filterLC = false;
     let filterStar5 = false;
     let filterStar4 = false;
-    let plannedIds = new Set();
+
+    // Planned Map stores: recipeId -> portions (e.g. { 1: 2, 5: 4 })
+    let plannedPortionsMap = {};
     let ratingsMap = {};
 
     let selectedPantryIngredients = new Set();
 
     let activeRecipe = null;
+    let modalPortions = 2;
     let wakeLock = null;
     let activeTimers = {};
 
@@ -1370,30 +1446,55 @@
       render();
     }
 
-    function togglePlan(id, e) {
+    // ==========================================
+    // PORTION MULTIPLIER & PLANNING LOGIC
+    // ==========================================
+    function adjustPlanPortions(id, delta, e) {
       if (e) e.stopPropagation();
-      if (plannedIds.has(id)) plannedIds.delete(id);
-      else plannedIds.add(id);
+      const current = plannedPortionsMap[id] || 0;
+      const next = current + delta;
+      if (next <= 0) {
+        delete plannedPortionsMap[id];
+      } else {
+        plannedPortionsMap[id] = next;
+      }
+      updatePlanner();
+      render();
+    }
+
+    function addDefaultPlan(id, e) {
+      if (e) e.stopPropagation();
+      plannedPortionsMap[id] = 2; // Default recipe yield is 2 portions
       updatePlanner();
       render();
     }
 
     function updatePlanner() {
       const bar = document.getElementById('plannerBar');
-      const count = plannedIds.size;
+      const plannedIds = Object.keys(plannedPortionsMap);
+      const count = plannedIds.length;
+
       if (count > 0) {
         bar.classList.add('show');
-        document.getElementById('plannerCount').innerText = `${count} ${count === 1 ? 'recipe' : 'recipes'} planned`;
-        
+        let totalPortions = 0;
         let tCal = 0, tProt = 0, tCarb = 0;
-        const selected = RECIPES.filter(r => plannedIds.has(r.id));
-        selected.forEach(r => {
-          tCal += parseFloat(r['calories (kcal)']) || 0;
-          tProt += parseFloat(r['protein (g)']) || 0;
-          tCarb += parseFloat(r['carbs (g)']) || 0;
+
+        plannedIds.forEach(idStr => {
+          const id = parseInt(idStr);
+          const p = plannedPortionsMap[id];
+          totalPortions += p;
+
+          const r = RECIPES.find(item => item.id === id);
+          if (r) {
+            tCal += parseFloat(r['calories (kcal)']) || 0;
+            tProt += parseFloat(r['protein (g)']) || 0;
+            tCarb += parseFloat(r['carbs (g)']) || 0;
+          }
         });
 
-        document.getElementById('plannerMacros').innerHTML = `Avg: <strong>${Math.round(tCal/count)} kcal</strong> • <strong>${Math.round(tProt/count)}g P</strong> • <strong>${Math.round(tCarb/count)}g C</strong>`;
+        document.getElementById('plannerCount').innerText = `${count} ${count === 1 ? 'recipe' : 'recipes'} (${totalPortions} portions total)`;
+        // Always strictly per-portion average
+        document.getElementById('plannerMacros').innerHTML = `Per-portion avg: <strong>${Math.round(tCal/count)} kcal</strong> • <strong>${Math.round(tProt/count)}g P</strong> • <strong>${Math.round(tCarb/count)}g C</strong>`;
       } else {
         bar.classList.remove('show');
       }
@@ -1408,20 +1509,14 @@
       return { label: protein || 'Other', bg: '#f1f5f9', txt: '#475569', bar: '#cbd5e1' };
     }
 
-    // ========================================================
-    // ROBUST INGREDIENT PARSER (HelloFresh, Gousto & Blogs)
-    // ========================================================
     function parseIngredientItem(raw) {
       let s = raw.trim();
-      
-      // Normalize unicode fractions
       s = s.replace(/½/g, '0.5')
            .replace(/¼/g, '0.25')
            .replace(/¾/g, '0.75')
            .replace(/⅓/g, '0.33')
            .replace(/⅔/g, '0.67');
 
-      // 1. Gousto colon format: "chicken breast: 320g", "mustard: 20g"
       const matchColon = s.match(/^([^:]+):\s*(\d+(?:\.\d+)?)\s*([a-zA-Z]*)$/);
       if (matchColon) {
         return {
@@ -1431,7 +1526,6 @@
         };
       }
 
-      // 2. HelloFresh / Standard Recipe format: "450 grams Potatoes", "1 sachet(s) Chilli Flakes", "0.5 tbsp Honey", "1 unit(s) Passion Fruit"
       const patternLead = /^(\d+(?:\.\d+)?)\s*(grams?|g|ml|tbsp|tsp|kg|bunch(?:es|\(es\))?|sachet(?:s|\(s\))?|unit(?:s|\(s\))?|pot(?:s|\(s\))?|clove(?:s|\(s\))?|can(?:s|\(s\))?|pack(?:s|\(s\))?|pinch(?:es)?)\s*(?:of\s+)?(.*)$/i;
       const matchLead = s.match(patternLead);
       if (matchLead) {
@@ -1448,7 +1542,6 @@
         return { name: nm, qty: val, unit: u };
       }
 
-      // 3. Parentheses format: "baby potatoes (350g)" or "brioche buns (2pcs)"
       const matchBracket = s.match(/^(.*?)\s*\((?:(\d+(?:\.\d+)?)\s*([a-zA-Z]*))\)$/);
       if (matchBracket) {
         return {
@@ -1458,7 +1551,6 @@
         };
       }
 
-      // 4. Multiplier format: "white potato x4"
       const matchX = s.match(/^(.*?)\s*x\s*(\d+)$/i);
       if (matchX) {
         return {
@@ -1468,7 +1560,6 @@
         };
       }
 
-      // 5. Trailing numbers format: "tenderstem broccoli 120g"
       const matchInline = s.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(g|kg|ml|tbsp|tsp)?$/i);
       if (matchInline) {
         return {
@@ -1481,22 +1572,28 @@
       return { name: s, qty: 1, unit: '' };
     }
 
-    function findStepIngredients(stepText, parsedIngredients) {
+    function scaleQuantityClean(qty, multiplier) {
+      const val = qty * multiplier;
+      if (val === Math.round(val)) return Math.round(val);
+      if (Math.round(val * 10) / 10 === Math.round(val * 100) / 100) {
+        return Math.round(val * 10) / 10;
+      }
+      return Math.round(val * 100) / 100;
+    }
+
+    function findStepIngredients(stepText, parsedIngredients, multiplier = 1) {
       const text = stepText.toLowerCase();
       const matched = [];
 
       parsedIngredients.forEach(ing => {
         const fullLower = ing.name.toLowerCase();
-        if (text.includes(fullLower)) {
-          matched.push(ing);
-          return;
-        }
         const tokens = fullLower
           .split(/[\s\-]+/)
           .filter(t => t.length > 3 && !['fresh','dried','baby','waxy','skin','fillets','steaks','breast','mince','sauce'].includes(t));
 
-        if (tokens.some(token => text.includes(token))) {
-          matched.push(ing);
+        if (text.includes(fullLower) || tokens.some(token => text.includes(token))) {
+          const scaledQty = scaleQuantityClean(ing.qty, multiplier);
+          matched.push({ ...ing, qty: scaledQty });
         }
       });
       return matched;
@@ -1526,30 +1623,35 @@
       return shared;
     }
 
+    // Consolidated Shopping List using recipe portions / 2
     function buildAggregatedIngredients() {
-      const selected = RECIPES.filter(r => plannedIds.has(r.id));
       const agg = {};
 
-      selected.forEach(r => {
+      Object.entries(plannedPortionsMap).forEach(([idStr, portions]) => {
+        const id = parseInt(idStr);
+        const r = RECIPES.find(item => item.id === id);
+        if (!r) return;
+
+        const multiplier = portions / 2.0;
+
         (r.ingredients || []).forEach(raw => {
-          const { name, qty, unit } = parseIngredientItem(raw);
-          const key = name.toLowerCase();
+          const parsed = parseIngredientItem(raw);
+          const key = parsed.name.toLowerCase();
+          const scaledQty = parsed.qty * multiplier;
 
           if (!agg[key]) {
-            agg[key] = { displayName: name, total: 0, unit: unit, occurrences: 0 };
+            agg[key] = { displayName: parsed.name, total: 0, unit: parsed.unit, occurrences: 0 };
           }
-          if (unit === agg[key].unit && qty) {
-            agg[key].total += qty;
+          if (parsed.unit === agg[key].unit) {
+            agg[key].total += scaledQty;
           }
           agg[key].occurrences += 1;
         });
       });
+
       return agg;
     }
 
-    // ========================================================
-    // PANTRY CHIPS BUILDER
-    // ========================================================
     function initPantryChips() {
       const renderChips = (containerId, items) => {
         const container = document.getElementById(containerId);
@@ -1610,9 +1712,6 @@
       render();
     }
 
-    // ========================================================
-    // MAIN RENDER WITH MULTI-TERM & PANTRY FILTERING
-    // ========================================================
     function render() {
       const q = document.getElementById('searchInput').value.toLowerCase().trim();
       const sortVal = document.getElementById('sortSelect').value;
@@ -1688,7 +1787,8 @@
       }
 
       grid.innerHTML = filtered.map(r => {
-        const isSelected = plannedIds.has(r.id);
+        const plannedPortions = plannedPortionsMap[r.id] || 0;
+        const isSelected = plannedPortions > 0;
         const cat = getProteinStyle(r['protein source'] || r.protein);
         const prot = parseFloat(r['protein (g)']) || 0;
         const carbs = parseFloat(r['carbs (g)']) || 0;
@@ -1701,7 +1801,15 @@
             <div>
               <div class="card-head">
                 <h3 class="card-title">${r.title}</h3>
-                <button class="btn-plan" onclick="togglePlan(${r.id}, event)">${isSelected ? '✓ Planned' : '+ Plan'}</button>
+                ${isSelected ? `
+                  <div class="stepper-wrap" onclick="event.stopPropagation()">
+                    <button class="btn-step" onclick="adjustPlanPortions(${r.id}, -1, event)">−</button>
+                    <span class="step-val">${plannedPortions}p</span>
+                    <button class="btn-step" onclick="adjustPlanPortions(${r.id}, 1, event)">+</button>
+                  </div>
+                ` : `
+                  <button class="btn-plan" onclick="addDefaultPlan(${r.id}, event)">+ Plan</button>
+                `}
               </div>
 
               ${renderStarWidget(recipeKey, rating)}
@@ -1716,7 +1824,7 @@
               </div>
 
               <div class="macro-bar">
-                <div class="macro-cell kcal"><strong>${r['calories (kcal)']||'-'}</strong><span>kcal</span></div>
+                <div class="macro-cell kcal"><strong>${r['calories (kcal)']||'-'}</strong><span>kcal/p</span></div>
                 <div class="macro-cell prot"><strong>${r['protein (g)']||'-'}g</strong><span>Prot</span></div>
                 <div class="macro-cell carb"><strong>${r['carbs (g)']||'-'}g</strong><span>Carb</span></div>
                 <div class="macro-cell fat"><strong>${r['fat (g)']||'-'}g</strong><span>Fat</span></div>
@@ -1753,6 +1861,39 @@
       document.getElementById('mRatingRow').innerHTML = renderStarWidget(recipeKey, rating);
     }
 
+    function renderModalIngredients() {
+      if (!activeRecipe) return;
+      const multiplier = modalPortions / 2.0;
+
+      document.getElementById('modalPortionVal').innerText = `${modalPortions} ${modalPortions === 1 ? 'portion' : 'portions'}`;
+
+      document.getElementById('mIngredientsList').innerHTML = (activeRecipe.ingredients || []).map(i => {
+        const parsed = parseIngredientItem(i);
+        const scaledQty = scaleQuantityClean(parsed.qty, multiplier);
+        const qtyStr = (scaledQty > 0 && parsed.unit) ? `${scaledQty}${parsed.unit}` : (scaledQty > 1 ? `×${scaledQty}` : (scaledQty > 0 ? `${scaledQty}` : ''));
+        return `
+          <div class="modal-ing-item">
+            <span>${parsed.name}</span>
+            <span class="modal-ing-qty">${qtyStr}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function changeModalPortions(delta) {
+      const next = modalPortions + delta;
+      if (next >= 1 && next <= 12) {
+        modalPortions = next;
+        // If recipe is already in the plan, sync its planned portions
+        if (activeRecipe && plannedPortionsMap[activeRecipe.id]) {
+          plannedPortionsMap[activeRecipe.id] = next;
+          updatePlanner();
+          render();
+        }
+        renderModalIngredients();
+      }
+    }
+
     function renderCompanionRecipes(currentRecipe) {
       const container = document.getElementById('companionList');
       const section = document.getElementById('companionSection');
@@ -1774,14 +1915,23 @@
 
       section.style.display = 'block';
       container.innerHTML = candidates.map(c => {
-        const isPlanned = plannedIds.has(c.recipe.id);
+        const p = plannedPortionsMap[c.recipe.id] || 0;
+        const isPlanned = p > 0;
         return `
           <div class="companion-card">
             <div class="companion-info" onclick="openDetails(${c.recipe.id})">
               <div class="companion-title">${c.recipe.title}</div>
               <div class="companion-shared">🌱 Shared: ${c.shared.join(', ')}</div>
             </div>
-            <button class="btn-plan" onclick="togglePlan(${c.recipe.id}, event)">${isPlanned ? '✓ Planned' : '+ Plan'}</button>
+            ${isPlanned ? `
+              <div class="stepper-wrap" onclick="event.stopPropagation()">
+                <button class="btn-step" onclick="adjustPlanPortions(${c.recipe.id}, -1, event)">−</button>
+                <span class="step-val">${p}p</span>
+                <button class="btn-step" onclick="adjustPlanPortions(${c.recipe.id}, 1, event)">+</button>
+              </div>
+            ` : `
+              <button class="btn-plan" onclick="addDefaultPlan(${c.recipe.id}, event)">+ Plan</button>
+            `}
           </div>
         `;
       }).join('');
@@ -1791,6 +1941,8 @@
       const r = RECIPES.find(item => item.id === id);
       if (!r) return;
       activeRecipe = r;
+      modalPortions = plannedPortionsMap[r.id] || 2;
+
       const recipeKey = r.title || r.id;
       const cat = getProteinStyle(r['protein source'] || r.protein);
       const cookedInfo = formatLastCookedRelative(r['last cooked']);
@@ -1809,23 +1961,15 @@
 
       renderModalRating(recipeKey);
 
+      // Strictly per-portion macros
       document.getElementById('mMacros').innerHTML = `
-        <div class="macro-cell kcal"><strong>${r['calories (kcal)']||'-'}</strong><span>Calories</span></div>
+        <div class="macro-cell kcal"><strong>${r['calories (kcal)']||'-'}</strong><span>kcal / portion</span></div>
         <div class="macro-cell prot"><strong>${r['protein (g)']||'-'}g</strong><span>Protein</span></div>
         <div class="macro-cell carb"><strong>${r['carbs (g)']||'-'}g</strong><span>Carbs</span></div>
         <div class="macro-cell fat"><strong>${r['fat (g)']||'-'}g</strong><span>Fat</span></div>
       `;
 
-      document.getElementById('mIngredientsList').innerHTML = (r.ingredients || []).map(i => {
-        const parsed = parseIngredientItem(i);
-        const qtyStr = (parsed.qty > 0 && parsed.unit) ? `${parsed.qty}${parsed.unit}` : (parsed.qty > 1 ? `×${parsed.qty}` : '');
-        return `
-          <div class="modal-ing-item">
-            <span>${parsed.name}</span>
-            <span class="modal-ing-qty">${qtyStr}</span>
-          </div>
-        `;
-      }).join('');
+      renderModalIngredients();
 
       const steps = formatSteps(r.instructions);
       document.getElementById('mSteps').innerHTML = steps.map((s, idx) => `
@@ -1904,7 +2048,7 @@
       btn.disabled = true;
 
       RECIPES = RECIPES.filter(r => r.title !== titleToDelete && r.id !== idToDelete);
-      plannedIds.delete(idToDelete);
+      delete plannedPortionsMap[idToDelete];
       delete ratingsMap[titleToDelete];
       localStorage.setItem(CACHE_KEY, JSON.stringify(RECIPES));
       localStorage.setItem(RATINGS_KEY, JSON.stringify(ratingsMap));
@@ -1930,7 +2074,7 @@
 
     function startCookFromModal() {
       closeModal('detailModal');
-      if (activeRecipe) startCook(activeRecipe.id);
+      if (activeRecipe) startCook(activeRecipe.id, modalPortions);
     }
 
     // ========================================================
@@ -1961,7 +2105,7 @@
       }
     });
 
-    async function startCook(id) {
+    async function startCook(id, portions = 2) {
       const r = RECIPES.find(item => item.id === id);
       if (!r) return;
       activeRecipe = r;
@@ -1969,7 +2113,10 @@
       Object.values(activeTimers).forEach(t => clearInterval(t.interval));
       activeTimers = {};
 
+      const multiplier = portions / 2.0;
+
       document.getElementById('cookTitle').innerText = r.title;
+      document.getElementById('cookPortionIndicator').innerText = `${portions} ${portions === 1 ? 'Portion' : 'Portions'}`;
 
       const parsedIngredients = (r.ingredients || []).map(parseIngredientItem);
       const steps = formatSteps(r.instructions);
@@ -1981,11 +2128,11 @@
         const hasTimer = !!timeMatch;
         const minutes = hasTimer ? parseInt(timeMatch[1]) : 0;
 
-        const stepIngs = findStepIngredients(cleanText, parsedIngredients);
+        const stepIngs = findStepIngredients(cleanText, parsedIngredients, multiplier);
         const ingsHtml = stepIngs.length > 0 ? `
           <div class="cook-step-ing-row">
             ${stepIngs.map(ing => {
-              const qtyStr = (ing.qty > 0 && ing.unit) ? `${ing.qty}${ing.unit}` : (ing.qty > 1 ? `×${ing.qty}` : '');
+              const qtyStr = (ing.qty > 0 && ing.unit) ? `${ing.qty}${ing.unit}` : (ing.qty > 1 ? `×${ing.qty}` : (ing.qty > 0 ? `${ing.qty}` : ''));
               return `
                 <div class="cook-step-ing-pill">
                   <span>${ing.name}</span>
@@ -2137,10 +2284,11 @@
 
       document.getElementById('groceryItems').innerHTML = items.map(item => {
         let displayQty = '';
-        if (item.total > 0 && item.unit) {
-          displayQty = `${item.total}${item.unit}`;
-        } else if (item.total > 0) {
-          displayQty = item.total === 1 ? '1' : `${item.total}`;
+        const cleanTotal = scaleQuantityClean(item.total, 1);
+        if (cleanTotal > 0 && item.unit) {
+          displayQty = `${cleanTotal}${item.unit}`;
+        } else if (cleanTotal > 0) {
+          displayQty = cleanTotal === 1 ? '1' : `${cleanTotal}`;
         } else {
           displayQty = item.occurrences > 1 ? `×${item.occurrences}` : '1';
         }
@@ -2161,12 +2309,17 @@
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
       const lines = items.map(item => {
-        const qtyStr = (item.total > 0 && item.unit) ? ` (${item.total}${item.unit})` : (item.total > 0 ? ` (${item.total})` : '');
+        const cleanTotal = scaleQuantityClean(item.total, 1);
+        const qtyStr = (cleanTotal > 0 && item.unit) ? ` (${cleanTotal}${item.unit})` : (cleanTotal > 0 ? ` (${cleanTotal})` : '');
         return `[ ] ${item.displayName}${qtyStr}`;
       });
 
-      const selected = RECIPES.filter(r => plannedIds.has(r.id));
-      const fullText = `GOUSTO SHOPPING LIST:\n\nPlanned Meals:\n${selected.map(s => `- ${s.title}`).join('\n')}\n\nItems to Buy:\n${lines.join('\n')}`;
+      const plannedSummary = Object.entries(plannedPortionsMap).map(([idStr, portions]) => {
+        const r = RECIPES.find(item => item.id === parseInt(idStr));
+        return r ? `- ${r.title} (${portions} portions)` : '';
+      }).filter(Boolean);
+
+      const fullText = `GOUSTO SHOPPING LIST:\n\nPlanned Meals:\n${plannedSummary.join('\n')}\n\nItems to Buy:\n${lines.join('\n')}`;
 
       navigator.clipboard.writeText(fullText).then(() => alert("Copied consolidated grocery list to clipboard!"));
     }
