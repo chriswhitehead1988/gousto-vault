@@ -626,7 +626,7 @@
 
     .cook-recipe-heading {
       flex: 1;
-      min-width: 0; /* Crucial for text-overflow in flexbox */
+      min-width: 0;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -714,7 +714,6 @@
     }
     .cook-exit-btn:hover { background: #334155; color: #fff; }
 
-    /* Mobile Adaptive Breakpoint for Cook Mode Header */
     @media (max-width: 600px) {
       .cook-header-bar {
         padding: max(10px, env(safe-area-inset-top)) 14px 10px 14px;
@@ -1221,7 +1220,7 @@
 
     // --- MAIN APP CONFIG & DATA ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v25_streamlined_cards";
+    const CACHE_KEY = "gousto_recipes_pwa_v26_fixed";
     const RATINGS_KEY = "gousto_recipe_ratings";
     const VIEW_MODE_KEY = "gousto_recipe_view_mode";
 
@@ -1236,7 +1235,7 @@
     let currentViewMode = localStorage.getItem(VIEW_MODE_KEY) || 'cards';
 
     // Interactive Table Header Sorting State
-    let tableSortCol = null;  // 'title', 'protein', 'time', 'cal', 'prot', 'carb', 'fat', 'rating'
+    let tableSortCol = null;
     let tableSortAsc = true;
 
     // Planned Map: recipeId -> portions (e.g. { 1: 2, 5: 4 })
@@ -1264,8 +1263,10 @@
     function setViewMode(mode) {
       currentViewMode = mode;
       localStorage.setItem(VIEW_MODE_KEY, mode);
-      document.getElementById('btnViewCards').classList.toggle('active', mode === 'cards');
-      document.getElementById('btnViewTable').classList.toggle('active', mode === 'table');
+      const btnCards = document.getElementById('btnViewCards');
+      const btnTable = document.getElementById('btnViewTable');
+      if (btnCards) btnCards.classList.toggle('active', mode === 'cards');
+      if (btnTable) btnTable.classList.toggle('active', mode === 'table');
       render();
     }
 
@@ -1322,7 +1323,7 @@
     async function saveRating(recipeKey, score, e) {
       if (e) e.stopPropagation();
 
-      const recipe = RECIPES.find(r => r.title === recipeKey || r.id === recipeKey);
+      const recipe = RECIPES.find(r => r.title === recipeKey || r.id == recipeKey);
       const title = recipe ? recipe.title : recipeKey;
 
       const current = ratingsMap[title] || 0;
@@ -1339,7 +1340,7 @@
       localStorage.setItem(RATINGS_KEY, JSON.stringify(ratingsMap));
       render();
 
-      if (activeRecipe && (activeRecipe.title === title || activeRecipe.id === recipeKey)) {
+      if (activeRecipe && (activeRecipe.title === title || activeRecipe.id == recipeKey)) {
         renderModalRating(title);
       }
 
@@ -1368,8 +1369,14 @@
     async function loadData() {
       loadRatings();
       initPantryChips();
-      setViewMode(currentViewMode);
 
+      // Ensure button active state matches stored mode
+      const btnCards = document.getElementById('btnViewCards');
+      const btnTable = document.getElementById('btnViewTable');
+      if (btnCards) btnCards.classList.toggle('active', currentViewMode === 'cards');
+      if (btnTable) btnTable.classList.toggle('active', currentViewMode === 'table');
+
+      // Hydrate from localStorage first for instantaneous render
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         try { 
@@ -1378,6 +1385,8 @@
           render(); 
         } catch(e){}
       }
+
+      // Fetch latest recipes from Google Apps Script
       try {
         const res = await fetch(APPS_SCRIPT_URL);
         const data = await res.json();
@@ -1386,7 +1395,12 @@
         localStorage.setItem(CACHE_KEY, JSON.stringify(data));
         render();
       } catch (err) {
-        if (!cached) document.getElementById('mainViewContainer').innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">Could not load recipes.</div>';
+        if (!cached) {
+          const mainContainer = document.getElementById('mainViewContainer');
+          if (mainContainer) {
+            mainContainer.innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">Could not load recipes. Please check your internet connection.</div>';
+          }
+        }
       }
     }
 
@@ -1579,762 +1593,4 @@
 
     function countIngredientOverlap(recipeA, recipeB) {
       const tokensA = new Set();
-      (recipeA.ingredients || []).forEach(i => getSignificantTokens(i).forEach(t => tokensA.add(t)));
-
-      const shared = [];
-      (recipeB.ingredients || []).forEach(i => {
-        const tokensB = getSignificantTokens(i);
-        tokensB.forEach(t => {
-          if (tokensA.has(t) && !shared.includes(t)) {
-            shared.push(t);
-          }
-        });
-      });
-      return shared;
-    }
-
-    function buildAggregatedIngredients(customPortionsMap = null) {
-      const agg = {};
-      const sourceMap = customPortionsMap || plannedPortionsMap;
-
-      Object.entries(sourceMap).forEach(([idStr, portions]) => {
-        const id = parseInt(idStr);
-        if (customPortionsMap && groceryDraftExcluded.has(id)) return;
-        if (portions <= 0) return;
-
-        const r = RECIPES.find(item => item.id == id);
-        if (!r) return;
-
-        const multiplier = portions / 2.0;
-
-        (r.ingredients || []).forEach(raw => {
-          const parsed = parseIngredientItem(raw);
-          const key = parsed.name.toLowerCase();
-          const scaledQty = parsed.qty * multiplier;
-
-          if (!agg[key]) {
-            agg[key] = { displayName: parsed.name, total: 0, unit: parsed.unit, occurrences: 0 };
-          }
-          if (parsed.unit === agg[key].unit) {
-            agg[key].total += scaledQty;
-          }
-          agg[key].occurrences += 1;
-        });
-      });
-
-      return agg;
-    }
-
-    function initPantryChips() {
-      const renderChips = (containerId, items) => {
-        const container = document.getElementById(containerId);
-        container.innerHTML = items.map(item => `
-          <div class="pantry-toggle-chip ${selectedPantryIngredients.has(item) ? 'selected' : ''}" 
-               onclick="togglePantryItem('${item}', this)">
-            ${item}
-          </div>
-        `).join('');
-      };
-
-      renderChips('pantryProteins', PANTRY_CATALOG.proteins);
-      renderChips('pantryCarbs', PANTRY_CATALOG.carbs);
-      renderChips('pantryProduce', PANTRY_CATALOG.produce);
-      renderChips('pantryCupboard', PANTRY_CATALOG.cupboard);
-    }
-
-    function togglePantryItem(item, el) {
-      if (selectedPantryIngredients.has(item)) {
-        selectedPantryIngredients.delete(item);
-        el.classList.remove('selected');
-      } else {
-        selectedPantryIngredients.add(item);
-        el.classList.add('selected');
-      }
-    }
-
-    function openPantryModal() {
-      initPantryChips();
-      document.getElementById('pantryModal').style.display = 'flex';
-    }
-
-    function applyPantryFilter() {
-      closeModal('pantryModal');
-      const banner = document.getElementById('pantryActiveBanner');
-      const triggerBtn = document.getElementById('btnPantryTrigger');
-
-      if (selectedPantryIngredients.size > 0) {
-        banner.style.display = 'flex';
-        document.getElementById('pantryActiveText').innerText = `Filtering by: ${Array.from(selectedPantryIngredients).join(', ')}`;
-        triggerBtn.classList.add('has-active');
-        triggerBtn.innerText = `🥕 ${selectedPantryIngredients.size} Selected`;
-      } else {
-        banner.style.display = 'none';
-        triggerBtn.classList.remove('has-active');
-        triggerBtn.innerText = '🥕 Match Pantry';
-      }
-      render();
-    }
-
-    function clearPantryFilter() {
-      selectedPantryIngredients.clear();
-      document.getElementById('pantryActiveBanner').style.display = 'none';
-      const triggerBtn = document.getElementById('btnPantryTrigger');
-      triggerBtn.classList.remove('has-active');
-      triggerBtn.innerText = '🥕 Match Pantry';
-      initPantryChips();
-      render();
-    }
-
-    function formatSteps(raw) {
-      if (!raw) return [];
-      const text = raw.trim();
-      if (text.includes('\n')) return text.split('\n').map(s => s.trim()).filter(Boolean);
-      if (/\b\d+[\.\)]\s*/.test(text)) return text.split(/\s*\d+[\.\)]\s*/).map(s => s.trim()).filter(Boolean);
-      return (text.match(/[^.!?]+[.!?]+(\s|$)/g) || [text]).map(s => s.trim()).filter(Boolean);
-    }
-
-    function renderModalRating(recipeKey) {
-      const rating = ratingsMap[recipeKey] || 0;
-      document.getElementById('mRatingRow').innerHTML = renderStarWidget(recipeKey, rating);
-    }
-
-    function renderModalIngredients() {
-      if (!activeRecipe) return;
-      const multiplier = modalPortions / 2.0;
-
-      document.getElementById('modalPortionVal').innerText = `${modalPortions} ${modalPortions === 1 ? 'portion' : 'portions'}`;
-
-      document.getElementById('mIngredientsList').innerHTML = (activeRecipe.ingredients || []).map(i => {
-        const parsed = parseIngredientItem(i);
-        const scaledQty = scaleQuantityClean(parsed.qty, multiplier);
-        const qtyStr = (scaledQty > 0 && parsed.unit) ? `${scaledQty}${parsed.unit}` : (scaledQty > 1 ? `×${scaledQty}` : (scaledQty > 0 ? `${scaledQty}` : ''));
-        return `
-          <div class="modal-ing-item">
-            <span>${parsed.name}</span>
-            <span class="modal-ing-qty">${qtyStr}</span>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function changeModalPortions(delta) {
-      const next = modalPortions + delta;
-      if (next >= 1 && next <= 12) {
-        modalPortions = next;
-        if (activeRecipe && plannedPortionsMap[activeRecipe.id]) {
-          plannedPortionsMap[activeRecipe.id] = next;
-          updatePlanner();
-          render();
-        }
-        renderModalIngredients();
-      }
-    }
-
-    function renderCompanionRecipes(currentRecipe) {
-      const container = document.getElementById('companionList');
-      const section = document.getElementById('companionSection');
-
-      const candidates = RECIPES
-        .filter(other => other.id !== currentRecipe.id && other.title !== currentRecipe.title)
-        .map(other => {
-          const shared = countIngredientOverlap(currentRecipe, other);
-          return { recipe: other, shared: shared, count: shared.length };
-        })
-        .filter(c => c.count >= 2)
-        .sort((a,b) => b.count - a.count)
-        .slice(0, 3);
-
-      if (candidates.length === 0) {
-        section.style.display = 'none';
-        return;
-      }
-
-      section.style.display = 'block';
-      container.innerHTML = candidates.map(c => {
-        const p = plannedPortionsMap[c.recipe.id] || 0;
-        const isPlanned = p > 0;
-        return `
-          <div class="companion-card">
-            <div class="companion-info" onclick="openDetails(${c.recipe.id})">
-              <div class="companion-title">${c.recipe.title}</div>
-              <div class="companion-shared">🌱 Shared: ${c.shared.join(', ')}</div>
-            </div>
-            ${isPlanned ? `
-              <div class="stepper-wrap" onclick="event.stopPropagation()">
-                <button class="btn-step" onclick="adjustPlanPortions(${c.recipe.id}, -1, event)">−</button>
-                <span class="step-val">${p}p</span>
-                <button class="btn-step" onclick="adjustPlanPortions(${c.recipe.id}, 1, event)">+</button>
-              </div>
-            ` : `
-              <button class="btn-plan" onclick="addDefaultPlan(${c.recipe.id}, event)">+ Plan</button>
-            `}
-          </div>
-        `;
-      }).join('');
-    }
-
-    function openDetails(id) {
-      const r = RECIPES.find(item => item.id == id);
-      if (!r) return;
-      activeRecipe = r;
-      modalPortions = plannedPortionsMap[r.id] || 2;
-
-      const recipeKey = r.title || r.id;
-      const cat = getProteinStyle(r['protein source'] || r.protein);
-      const cookedInfo = formatLastCookedRelative(r['last cooked']);
-
-      document.getElementById('mTitle').innerText = r.title;
-      document.getElementById('mPrepTag').innerText = `⏱ ${r.time || 'N/A'}`;
-      
-      const catTag = document.getElementById('mCategoryTag');
-      catTag.innerText = cat.label;
-      catTag.style.background = cat.bg;
-      catTag.style.color = cat.txt;
-
-      const cookedTag = document.getElementById('mCookedTag');
-      cookedTag.innerText = cookedInfo.text;
-      cookedTag.className = `badge-cooked ${cookedInfo.isFresh ? 'fresh' : ''}`;
-
-      renderModalRating(recipeKey);
-
-      document.getElementById('mMacros').innerHTML = `
-        <div class="macro-cell kcal"><strong>${r['calories (kcal)']||'-'}</strong><span>kcal / portion</span></div>
-        <div class="macro-cell prot"><strong>${r['protein (g)']||'-'}g</strong><span>Protein</span></div>
-        <div class="macro-cell carb"><strong>${r['carbs (g)']||'-'}g</strong><span>Carbs</span></div>
-        <div class="macro-cell fat"><strong>${r['fat (g)']||'-'}g</strong><span>Fat</span></div>
-      `;
-
-      renderModalIngredients();
-
-      const steps = formatSteps(r.instructions);
-      document.getElementById('mSteps').innerHTML = steps.map((s, idx) => `
-        <div class="step-item" onclick="this.classList.toggle('done')">
-          <div class="step-box">✓</div>
-          <div style="flex:1;"><strong>Step ${idx+1}:</strong> ${s.replace(/^\d+[\.\)]\s*/, '')}</div>
-        </div>
-      `).join('');
-
-      renderCompanionRecipes(r);
-
-      document.getElementById('detailModal').style.display = 'flex';
-    }
-
-    async function markRecipeCooked(recipeObj) {
-      if (!recipeObj) return;
-      const todayStr = new Date().toISOString().split('T')[0];
-      recipeObj['last cooked'] = todayStr;
-
-      localStorage.setItem(CACHE_KEY, JSON.stringify(RECIPES));
-      render();
-
-      try {
-        await fetch(APPS_SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action: "markCooked", title: recipeObj.title, date: todayStr })
-        });
-      } catch (err) {
-        console.warn("Failed to sync Last Cooked to Sheet:", err);
-      }
-    }
-
-    async function markRecipeCookedToday() {
-      if (!activeRecipe) return;
-      const btn = document.getElementById('btnMarkCookedModal');
-      btn.innerText = "Saving...";
-      btn.disabled = true;
-
-      await markRecipeCooked(activeRecipe);
-
-      const cookedInfo = formatLastCookedRelative(activeRecipe['last cooked']);
-      const cookedTag = document.getElementById('mCookedTag');
-      cookedTag.innerText = cookedInfo.text;
-      cookedTag.className = `badge-cooked ${cookedInfo.isFresh ? 'fresh' : ''}`;
-
-      btn.innerText = "✓ Saved!";
-      setTimeout(() => {
-        btn.innerText = "✓ Cooked Today";
-        btn.disabled = false;
-      }, 1200);
-    }
-
-    async function finishCookMode() {
-      if (activeRecipe) {
-        await markRecipeCooked(activeRecipe);
-      }
-      exitCook();
-      alert(`🎉 Nice cooking! Marked "${activeRecipe ? activeRecipe.title : 'recipe'}" as cooked today.`);
-    }
-
-    async function deleteActiveRecipe() {
-      if (!activeRecipe) return;
-
-      const confirmed = confirm(`Are you sure you want to permanently delete "${activeRecipe.title}"?\n\nThis will remove it from the app and delete its row in your Google Sheet.`);
-      if (!confirmed) return;
-
-      const titleToDelete = activeRecipe.title;
-      const idToDelete = activeRecipe.id;
-      const btn = document.getElementById('btnDeleteModal');
-
-      btn.innerText = "Deleting...";
-      btn.disabled = true;
-
-      RECIPES = RECIPES.filter(r => r.title !== titleToDelete && r.id !== idToDelete);
-      delete plannedPortionsMap[idToDelete];
-      delete ratingsMap[titleToDelete];
-      localStorage.setItem(CACHE_KEY, JSON.stringify(RECIPES));
-      localStorage.setItem(RATINGS_KEY, JSON.stringify(ratingsMap));
-
-      closeModal('detailModal');
-      updatePlanner();
-      render();
-
-      try {
-        await fetch(APPS_SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action: "deleteRecipe", title: titleToDelete })
-        });
-      } catch (err) {
-        console.warn("Failed to delete from Google Sheet:", err);
-      } finally {
-        btn.innerText = "🗑 Delete";
-        btn.disabled = false;
-        activeRecipe = null;
-      }
-    }
-
-    function startCookFromModal() {
-      closeModal('detailModal');
-      if (activeRecipe) startCook(activeRecipe.id, modalPortions);
-    }
-
-    async function requestWakeLock() {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLock = await navigator.wakeLock.request('screen');
-          document.getElementById('wakeIndicator').style.display = 'inline-flex';
-          wakeLock.addEventListener('release', () => {
-            if (document.getElementById('cookOverlay').style.display === 'flex') {
-              if (document.visibilityState === 'visible') requestWakeLock();
-            } else {
-              document.getElementById('wakeIndicator').style.display = 'none';
-            }
-          });
-        }
-      } catch (err) {
-        console.warn("Screen Wake Lock error:", err);
-        document.getElementById('wakeIndicator').style.display = 'none';
-      }
-    }
-
-    document.addEventListener('visibilitychange', async () => {
-      if (document.visibilityState === 'visible' && document.getElementById('cookOverlay').style.display === 'flex') {
-        await requestWakeLock();
-      }
-    });
-
-    async function startCook(id, portions = 2) {
-      const r = RECIPES.find(item => item.id == id);
-      if (!r) return;
-      activeRecipe = r;
-
-      Object.values(activeTimers).forEach(t => clearInterval(t.interval));
-      activeTimers = {};
-
-      const multiplier = portions / 2.0;
-
-      document.getElementById('cookTitle').innerText = r.title;
-      document.getElementById('cookPortionIndicator').innerText = `${portions} ${portions === 1 ? 'Portion' : 'Portions'}`;
-
-      const parsedIngredients = (r.ingredients || []).map(parseIngredientItem);
-      const steps = formatSteps(r.instructions);
-      const stepsContainer = document.getElementById('cookStepsViewport');
-
-      stepsContainer.innerHTML = steps.map((s, idx) => {
-        const cleanText = s.replace(/^\d+[\.\)]\s*/, '');
-        const timeMatch = cleanText.match(/(\d+)\s*(?:mins?|minutes?)/i);
-        const hasTimer = !!timeMatch;
-        const minutes = hasTimer ? parseInt(timeMatch[1]) : 0;
-
-        const stepIngs = findStepIngredients(cleanText, parsedIngredients, multiplier);
-        const ingsHtml = stepIngs.length > 0 ? `
-          <div class="cook-step-ing-row">
-            ${stepIngs.map(ing => {
-              const qtyStr = (ing.qty > 0 && ing.unit) ? `${ing.qty}${ing.unit}` : (ing.qty > 1 ? `×${ing.qty}` : (ing.qty > 0 ? `${ing.qty}` : ''));
-              return `
-                <div class="cook-step-ing-pill">
-                  <span>${ing.name}</span>
-                  ${qtyStr ? `<strong>${qtyStr}</strong>` : ''}
-                </div>
-              `;
-            }).join('')}
-          </div>
-        ` : '';
-
-        return `
-          <div class="cook-step-card" id="cookStepCard_${idx}" onclick="toggleCookStepDone(${idx})">
-            <div class="cook-check-circle">
-              <span class="cook-check-icon">✓</span>
-            </div>
-            <div class="cook-step-content">
-              <div class="cook-step-tag">Step ${idx + 1}</div>
-              ${ingsHtml}
-              <div class="cook-step-desc">${cleanText}</div>
-              ${hasTimer ? `
-                <div class="cook-step-timer-box" onclick="event.stopPropagation()">
-                  <span class="cook-step-timer-time" id="cookTimerDisplay_${idx}">${formatTime(minutes * 60)}</span>
-                  <button class="cook-step-timer-btn" id="cookTimerBtn_${idx}" onclick="toggleStepTimer(${idx}, ${minutes})">Start ${minutes}m Timer</button>
-                </div>
-              ` : ''}
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      stepsContainer.scrollTop = 0;
-      document.getElementById('cookOverlay').style.display = 'flex';
-      await requestWakeLock();
-    }
-
-    function toggleCookStepDone(idx) {
-      const card = document.getElementById(`cookStepCard_${idx}`);
-      if (card) {
-        card.classList.toggle('completed');
-      }
-    }
-
-    function toggleStepTimer(idx, minutes) {
-      const btn = document.getElementById(`cookTimerBtn_${idx}`);
-      const display = document.getElementById(`cookTimerDisplay_${idx}`);
-
-      if (activeTimers[idx] && activeTimers[idx].interval) {
-        clearInterval(activeTimers[idx].interval);
-        activeTimers[idx].interval = null;
-        btn.classList.remove('running');
-        btn.innerText = 'Resume';
-      } else {
-        if (!activeTimers[idx]) {
-          activeTimers[idx] = { remaining: minutes * 60, interval: null };
-        }
-
-        btn.classList.add('running');
-        btn.innerText = 'Pause';
-
-        activeTimers[idx].interval = setInterval(() => {
-          if (activeTimers[idx].remaining > 0) {
-            activeTimers[idx].remaining--;
-            display.innerText = formatTime(activeTimers[idx].remaining);
-          } else {
-            clearInterval(activeTimers[idx].interval);
-            activeTimers[idx].interval = null;
-            btn.classList.remove('running');
-            btn.innerText = 'Done!';
-            if ('vibrate' in navigator) navigator.vibrate([400, 200, 400]);
-          }
-        }, 1000);
-      }
-    }
-
-    function exitCook() {
-      Object.values(activeTimers).forEach(t => {
-        if (t.interval) clearInterval(t.interval);
-      });
-      activeTimers = {};
-
-      document.getElementById('cookOverlay').style.display = 'none';
-
-      if (wakeLock) {
-        wakeLock.release().catch(() => {});
-        wakeLock = null;
-      }
-      document.getElementById('wakeIndicator').style.display = 'none';
-    }
-
-    function formatTime(s) {
-      return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-    }
-
-    function openImportModal() {
-      document.getElementById('importUrlInput').value = '';
-      document.getElementById('importStatus').style.display = 'none';
-      document.getElementById('importModal').style.display = 'flex';
-      document.getElementById('importUrlInput').focus();
-    }
-
-    async function submitRecipeImport() {
-      const url = document.getElementById('importUrlInput').value.trim();
-      const status = document.getElementById('importStatus');
-      const btn = document.getElementById('btnDoImport');
-
-      if (!url) return;
-
-      status.style.display = 'block';
-      status.style.color = '#38bdf8';
-      status.innerText = 'Extracting recipe and writing to Google Sheet...';
-      btn.disabled = true;
-
-      try {
-        const res = await fetch(APPS_SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action: "importRecipe", url: url })
-        });
-        
-        const result = await res.json();
-        
-        if (result.status === "error") {
-          throw new Error(result.message || "Failed to parse recipe.");
-        }
-
-        status.style.color = '#22c55e';
-        status.innerText = `Added "${result.title}"! Syncing...`;
-        
-        localStorage.removeItem(CACHE_KEY);
-        setTimeout(async () => {
-          await loadData();
-          closeModal('importModal');
-          btn.disabled = false;
-        }, 1500);
-
-      } catch (err) {
-        status.style.color = '#f87171';
-        status.innerText = 'Error: ' + err.message;
-        btn.disabled = false;
-      }
-    }
-
-    // ========================================================
-    // ENHANCED GROCERY MODAL (LIVE DRAFTING, STEPPERS, COPY)
-    // ========================================================
-    function openGroceryModal() {
-      groceryDraftPortions = { ...plannedPortionsMap };
-      groceryDraftExcluded = new Set();
-      renderGroceryModalContent();
-      document.getElementById('groceryModal').style.display = 'flex';
-    }
-
-    function renderGroceryModalContent() {
-      const mealIds = Object.keys(groceryDraftPortions).map(id => parseInt(id));
-      const mealsListEl = document.getElementById('groceryMealsList');
-      const summaryEl = document.getElementById('groceryMealsSummary');
-      const rawBox = document.getElementById('groceryRawBox');
-
-      if (mealIds.length === 0) {
-        mealsListEl.innerHTML = '<div style="color:#94a3b8; font-size:13px; padding:6px 0;">No recipes currently planned.</div>';
-        summaryEl.innerText = '0 recipes';
-        document.getElementById('groceryItems').innerHTML = '<div style="color:#94a3b8; font-size:13px;">Add meals to generate ingredients list.</div>';
-        if (rawBox) rawBox.value = '';
-        return;
-      }
-
-      const activeCount = mealIds.filter(id => !groceryDraftExcluded.has(id)).length;
-      summaryEl.innerText = `${activeCount} of ${mealIds.length} active`;
-
-      // 1. Render Planned Meals with Checkboxes & Steppers
-      mealsListEl.innerHTML = mealIds.map(id => {
-        const r = RECIPES.find(item => item.id == id);
-        if (!r) return '';
-        const isExcluded = groceryDraftExcluded.has(id);
-        const p = groceryDraftPortions[id] || 2;
-
-        return `
-          <div class="grocery-meal-row">
-            <label class="grocery-meal-check ${isExcluded ? 'excluded' : ''}">
-              <input type="checkbox" ${!isExcluded ? 'checked' : ''} onchange="toggleGroceryMeal(${id}, this.checked)">
-              <span>${r.title}</span>
-            </label>
-            <div class="stepper-wrap" style="background:#fff;">
-              <button class="btn-step" onclick="changeGroceryPortion(${id}, -1)">−</button>
-              <span class="step-val">${p}p</span>
-              <button class="btn-step" onclick="changeGroceryPortion(${id}, 1)">+</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // 2. Render Aggregated Ingredients
-      const agg = buildAggregatedIngredients(groceryDraftPortions);
-      const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
-
-      if (items.length === 0) {
-        document.getElementById('groceryItems').innerHTML = '<div style="color:#94a3b8; font-size:13px; padding:6px 0;">All meals unchecked. Tick a meal above to view ingredients.</div>';
-        if (rawBox) rawBox.value = '';
-        return;
-      }
-
-      const cleanLines = items.map(item => {
-        const cleanTotal = scaleQuantityClean(item.total, 1);
-        let qtyStr = '';
-        if (cleanTotal > 0 && item.unit) {
-          qtyStr = ` (${cleanTotal}${item.unit})`;
-        } else if (cleanTotal > 0) {
-          qtyStr = cleanTotal === 1 ? '' : ` (${cleanTotal})`;
-        }
-        return `${item.displayName}${qtyStr}`;
-      });
-
-      document.getElementById('groceryItems').innerHTML = items.map(item => {
-        let displayQty = '';
-        const cleanTotal = scaleQuantityClean(item.total, 1);
-        if (cleanTotal > 0 && item.unit) {
-          displayQty = `${cleanTotal}${item.unit}`;
-        } else if (cleanTotal > 0) {
-          displayQty = cleanTotal === 1 ? '1' : `${cleanTotal}`;
-        } else {
-          displayQty = item.occurrences > 1 ? `×${item.occurrences}` : '1';
-        }
-
-        return `
-          <div class="grocery-row">
-            <span>☐ ${item.displayName}</span>
-            <span class="grocery-total">${displayQty}</span>
-          </div>
-        `;
-      }).join('');
-
-      if (rawBox) {
-        rawBox.value = cleanLines.join('\n');
-      }
-    }
-
-    function toggleGroceryMeal(id, isChecked) {
-      if (isChecked) {
-        groceryDraftExcluded.delete(id);
-      } else {
-        groceryDraftExcluded.add(id);
-      }
-      renderGroceryModalContent();
-    }
-
-    function changeGroceryPortion(id, delta) {
-      const current = groceryDraftPortions[id] || 2;
-      const next = current + delta;
-      if (next >= 1 && next <= 12) {
-        groceryDraftPortions[id] = next;
-        renderGroceryModalContent();
-      }
-    }
-
-    function saveGroceryChanges() {
-      const nextPlan = {};
-      Object.entries(groceryDraftPortions).forEach(([idStr, portions]) => {
-        const id = parseInt(idStr);
-        if (!groceryDraftExcluded.has(id) && portions > 0) {
-          nextPlan[id] = portions;
-        }
-      });
-
-      plannedPortionsMap = nextPlan;
-      updatePlanner();
-      render();
-      closeModal('groceryModal');
-    }
-
-    function clearEntireGroceryList() {
-      if (confirm("Are you sure you want to clear your planned recipes and grocery list?")) {
-        plannedPortionsMap = {};
-        groceryDraftPortions = {};
-        groceryDraftExcluded.clear();
-        updatePlanner();
-        render();
-        renderGroceryModalContent();
-      }
-    }
-
-    // ========================================================
-    // BULLETPROOF VIEWPORT-AWARE CLIPBOARD ENGINE
-    // ========================================================
-    function copyGrocery() {
-      const agg = buildAggregatedIngredients(groceryDraftPortions);
-      const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
-
-      if (items.length === 0) {
-        alert("Your grocery list is empty or all meals are unticked!");
-        return;
-      }
-
-      const cleanLines = items.map(item => {
-        const cleanTotal = scaleQuantityClean(item.total, 1);
-        let qtyStr = '';
-        if (cleanTotal > 0 && item.unit) {
-          qtyStr = ` (${cleanTotal}${item.unit})`;
-        } else if (cleanTotal > 0) {
-          qtyStr = cleanTotal === 1 ? '' : ` (${cleanTotal})`;
-        }
-        return `${item.displayName}${qtyStr}`;
-      });
-
-      const fullText = cleanLines.join('\n');
-      const btn = document.getElementById('btnCopyIngredients');
-      const rawBox = document.getElementById('groceryRawBox');
-
-      if (rawBox) rawBox.value = fullText;
-
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(fullText)
-          .then(() => showCopySuccess(btn))
-          .catch(() => performExecCopyFallback(fullText, btn));
-      } else {
-        performExecCopyFallback(fullText, btn);
-      }
-    }
-
-    function performExecCopyFallback(text, btn) {
-      try {
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        textarea.setAttribute("readonly", "");
-        textarea.style.position = "fixed";
-        textarea.style.top = "10px";
-        textarea.style.left = "10px";
-        textarea.style.width = "20px";
-        textarea.style.height = "20px";
-        textarea.style.opacity = "0.01";
-        textarea.style.fontSize = "16px";
-        document.body.appendChild(textarea);
-
-        textarea.focus();
-        textarea.select();
-        textarea.setSelectionRange(0, textarea.value.length);
-
-        const success = document.execCommand("copy");
-        document.body.removeChild(textarea);
-
-        if (success) {
-          showCopySuccess(btn);
-        } else {
-          const rawBox = document.getElementById('groceryRawBox');
-          if (rawBox) {
-            rawBox.focus();
-            rawBox.select();
-          }
-          alert("Selected text below. Tap 'Copy' on your device.");
-        }
-      } catch (err) {
-        const rawBox = document.getElementById('groceryRawBox');
-        if (rawBox) {
-          rawBox.focus();
-          rawBox.select();
-        }
-        alert("Selected text below. Tap 'Copy' on your device.");
-      }
-    }
-
-    function showCopySuccess(btn) {
-      if (!btn) return;
-      const originalText = btn.innerHTML;
-      btn.classList.add('copied-active');
-      btn.innerHTML = "✓ Copied to Clipboard!";
-      setTimeout(() => {
-        btn.classList.remove('copied-active');
-        btn.innerHTML = originalText;
-      }, 2000);
-    }
-
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-    loadData();
-  </script>
-</body>
-</html>
+      (recipeA.ingredients
