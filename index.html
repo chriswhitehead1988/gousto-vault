@@ -337,9 +337,7 @@
       padding: 0;
     }
 
-    /* ========================================================
-       CARD VIEW GRID
-       ======================================================== */
+    /* CARD VIEW GRID */
     .recipe-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
@@ -536,9 +534,7 @@
       gap: 4px;
     }
 
-    /* ========================================================
-       TABLE VIEW STYLES & SORT INDICATORS
-       ======================================================== */
+    /* TABLE VIEW STYLES & SORT INDICATORS */
     .table-container {
       width: 100%;
       background: var(--surface);
@@ -846,7 +842,7 @@
       white-space: nowrap;
     }
     .btn-plan-modal {
-      flex: 1 1 150px;
+      flex: 1 1 140px;
       background: #fff;
       color: var(--text);
       border: 1px solid var(--border);
@@ -860,6 +856,12 @@
       color: #fff;
       border-color: var(--brand);
     }
+    .btn-edit-modal {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      color: #334155;
+    }
+    .btn-edit-modal:hover { background: #e2e8f0; }
     .btn-cook-primary {
       flex: 1 1 130px;
       background: #0f172a;
@@ -880,8 +882,51 @@
     .btn-delete-recipe:hover { background: #ffe4e6; }
 
     /* ========================================================
-       GROCERY MODAL STYLING
+       IN-PLACE MODAL EDIT FORM STYLES
        ======================================================== */
+    .edit-form-group {
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .edit-form-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .edit-form-input, .edit-form-select, .edit-form-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #f8fafc;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .edit-form-input:focus, .edit-form-select:focus, .edit-form-textarea:focus {
+      background: #fff;
+      border-color: var(--brand);
+    }
+    .edit-form-textarea {
+      font-family: inherit;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    .edit-macro-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    @media (max-width: 500px) {
+      .edit-macro-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* GROCERY MODAL STYLING */
     .grocery-plan-section {
       background: #f8fafc;
       border: 1px solid var(--border);
@@ -1375,57 +1420,126 @@
     <button class="btn-basket" onclick="openGroceryModal()">🛒 View Grocery List</button>
   </div>
 
-  <!-- FLOATING RECIPE DETAILS BOX -->
+  <!-- FLOATING RECIPE DETAILS BOX (WITH IN-PLACE EDIT MODE) -->
   <div class="modal-overlay" id="detailModal" onclick="closeModal('detailModal')">
     <div class="floating-box" onclick="event.stopPropagation()">
-      <div class="modal-head">
-        <div>
-          <h3 id="mTitle" style="margin:0; font-size:20px; font-weight:800; line-height:1.3; color:#0f172a;"></h3>
-          <div style="display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;">
-            <span id="mCategoryTag" class="tag-category"></span>
-            <span id="mPrepTag" style="font-size:12px; font-weight:700; color:#64748b;"></span>
-            <span id="mCookedTag" class="badge-cooked"></span>
-            <div id="mRatingRow" class="rating-row" style="margin:0;"></div>
-          </div>
-        </div>
-        <button class="modal-close-btn" onclick="closeModal('detailModal')">✕</button>
-      </div>
       
-      <div class="modal-scroll">
-        <!-- Strictly Per-Portion Nutrition -->
-        <div class="macro-bar" id="mMacros"></div>
+      <!-- 1. VIEW MODE CONTAINER -->
+      <div id="modalViewContainer">
+        <div class="modal-head">
+          <div>
+            <h3 id="mTitle" style="margin:0; font-size:20px; font-weight:800; line-height:1.3; color:#0f172a;"></h3>
+            <div style="display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;">
+              <span id="mCategoryTag" class="tag-category"></span>
+              <span id="mPrepTag" style="font-size:12px; font-weight:700; color:#64748b;"></span>
+              <span id="mCookedTag" class="badge-cooked"></span>
+              <div id="mRatingRow" class="rating-row" style="margin:0;"></div>
+            </div>
+          </div>
+          <button class="modal-close-btn" onclick="closeModal('detailModal')">✕</button>
+        </div>
+        
+        <div class="modal-scroll">
+          <div class="macro-bar" id="mMacros"></div>
 
-        <!-- Portion Scaling Bar inside Details Modal -->
-        <div class="modal-portion-bar">
-          <span class="modal-portion-label">Portions to prepare:</span>
-          <div class="stepper-wrap" style="background:#fff;">
-            <button class="btn-step" onclick="changeModalPortions(-1)">−</button>
-            <span class="step-val" id="modalPortionVal">2 portions</span>
-            <button class="btn-step" onclick="changeModalPortions(1)">+</button>
+          <div class="modal-portion-bar">
+            <span class="modal-portion-label">Portions to prepare:</span>
+            <div class="stepper-wrap" style="background:#fff;">
+              <button class="btn-step" onclick="changeModalPortions(-1)">−</button>
+              <span class="step-val" id="modalPortionVal">2 portions</span>
+              <button class="btn-step" onclick="changeModalPortions(1)">+</button>
+            </div>
+          </div>
+
+          <div class="section-title">Ingredients Needed</div>
+          <div class="modal-ing-grid" id="mIngredientsList"></div>
+
+          <div class="section-title">Cooking Steps (Click to complete)</div>
+          <div id="mSteps"></div>
+
+          <div class="companion-section" id="companionSection">
+            <div class="section-title" style="margin-top:0;">Pairs Well for Weekly Planning</div>
+            <p style="font-size:12px; color:#64748b; margin:0 0 10px 0;">Recipes sharing 2 or more ingredients to minimize shopping:</p>
+            <div class="companion-list" id="companionList"></div>
+          </div>
+
+          <div class="modal-button-row">
+            <button class="btn-modal-action btn-plan-modal" id="btnModalPlanToggle" onclick="togglePlanFromModal()">+ Add to Plan</button>
+            <button class="btn-modal-action btn-edit-modal" onclick="switchToEditMode()">✏️ Edit</button>
+            <button class="btn-modal-action btn-cook-primary" onclick="startCookFromModal()">🍳 Cook Mode</button>
+            <button class="btn-modal-action btn-cooked-today" id="btnMarkCookedModal" onclick="markRecipeCookedToday()">✓ Cooked Today</button>
+            <button class="btn-modal-action btn-delete-recipe" id="btnDeleteModal" onclick="deleteActiveRecipe()">🗑 Delete</button>
           </div>
         </div>
+      </div>
 
-        <div class="section-title">Ingredients Needed</div>
-        <div class="modal-ing-grid" id="mIngredientsList"></div>
-
-        <div class="section-title">Cooking Steps (Click to complete)</div>
-        <div id="mSteps"></div>
-
-        <!-- Companion Recipes -->
-        <div class="companion-section" id="companionSection">
-          <div class="section-title" style="margin-top:0;">Pairs Well for Weekly Planning</div>
-          <p style="font-size:12px; color:#64748b; margin:0 0 10px 0;">Recipes sharing 2 or more ingredients to minimize shopping:</p>
-          <div class="companion-list" id="companionList"></div>
+      <!-- 2. IN-PLACE EDIT MODE CONTAINER -->
+      <div id="modalEditContainer" style="display:none; flex-direction:column; height:100%;">
+        <div class="modal-head">
+          <div>
+            <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">Edit Recipe</h3>
+            <span style="font-size:12px; color:#64748b;">Changes will sync back to Google Sheets</span>
+          </div>
+          <button class="modal-close-btn" onclick="cancelEditMode()">✕</button>
         </div>
 
-        <!-- Modal Action Buttons with Plan Toggle -->
-        <div class="modal-button-row">
-          <button class="btn-modal-action btn-plan-modal" id="btnModalPlanToggle" onclick="togglePlanFromModal()">+ Add to Plan</button>
-          <button class="btn-modal-action btn-cook-primary" onclick="startCookFromModal()">🍳 Cook Mode</button>
-          <button class="btn-modal-action btn-cooked-today" id="btnMarkCookedModal" onclick="markRecipeCookedToday()">✓ Cooked Today</button>
-          <button class="btn-modal-action btn-delete-recipe" id="btnDeleteModal" onclick="deleteActiveRecipe()">🗑 Delete</button>
+        <div class="modal-scroll">
+          <div class="edit-form-group">
+            <label class="edit-form-label">Dish Title</label>
+            <input type="text" id="editTitleInput" class="edit-form-input">
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="edit-form-group">
+              <label class="edit-form-label">Protein Source</label>
+              <select id="editProteinSelect" class="edit-form-select">
+                <option value="Chicken">Chicken</option>
+                <option value="Beef">Beef</option>
+                <option value="Fish">Fish</option>
+                <option value="Pork">Pork</option>
+                <option value="Vegetarian">Vegetarian</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="edit-form-group">
+              <label class="edit-form-label">Prep/Cook Time</label>
+              <input type="text" id="editTimeInput" class="edit-form-input" placeholder="e.g. 30m">
+            </div>
+          </div>
+
+          <div class="edit-form-group">
+            <label class="edit-form-label">Macros (Per Portion)</label>
+            <div class="edit-macro-grid">
+              <input type="number" id="editCalInput" class="edit-form-input" placeholder="Calories">
+              <input type="number" id="editProtInput" class="edit-form-input" placeholder="Protein (g)">
+              <input type="number" id="editCarbInput" class="edit-form-input" placeholder="Carbs (g)">
+              <input type="number" id="editFatInput" class="edit-form-input" placeholder="Fat (g)">
+            </div>
+          </div>
+
+          <div class="edit-form-group">
+            <label class="edit-form-label">Tags</label>
+            <input type="text" id="editTagsInput" class="edit-form-input" placeholder="e.g. High Protein, Quick">
+          </div>
+
+          <div class="edit-form-group">
+            <label class="edit-form-label">Ingredients (One per line, e.g. chicken breast: 320g)</label>
+            <textarea id="editIngredientsTextarea" class="edit-form-textarea" rows="6"></textarea>
+          </div>
+
+          <div class="edit-form-group">
+            <label class="edit-form-label">Instructions / Steps</label>
+            <textarea id="editInstructionsTextarea" class="edit-form-textarea" rows="8"></textarea>
+          </div>
+
+          <div class="modal-button-row" style="margin-top:14px;">
+            <button class="btn-modal-action" id="btnSaveRecipeEdit" style="flex:1; background:#16a34a; color:#fff;" onclick="submitRecipeEdit()">💾 Save Changes</button>
+            <button class="btn-modal-action" style="background:#f1f5f9; color:#475569;" onclick="cancelEditMode()">✕ Cancel</button>
+          </div>
+          <div id="editStatusMessage" style="font-size:13px; font-weight:700; text-align:center; margin-top:10px; display:none;"></div>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -1507,7 +1621,6 @@
       </div>
       
       <div class="modal-scroll">
-        <!-- Selected Recipes with Checkboxes & Portions Stepper -->
         <div class="grocery-plan-section">
           <div class="grocery-plan-header">
             <span>Planned Meals</span>
@@ -1516,18 +1629,15 @@
           <div id="groceryMealsList"></div>
         </div>
 
-        <!-- Consolidated Ingredients Needed -->
         <div class="section-title">Consolidated Ingredients</div>
         <div id="groceryItems" style="margin-bottom:16px;"></div>
 
-        <!-- Action Buttons: Save, Clear, Copy -->
         <div class="grocery-action-grid">
           <button class="btn-grocery-save" onclick="saveGroceryChanges()">💾 Save Changes</button>
           <button class="btn-grocery-clear" onclick="clearEntireGroceryList()">🗑 Clear All</button>
           <button class="btn-grocery-copy" id="btnCopyIngredients" onclick="copyGrocery()">📋 Copy Ingredients List</button>
         </div>
 
-        <!-- Plain-Text View (tap to select all) -->
         <div style="margin-top:16px;">
           <div class="section-title" style="margin:0 0 6px 0;">Plain Text View (Tap to select all)</div>
           <textarea id="groceryRawBox" class="grocery-raw-box" readonly onclick="this.select();"></textarea>
@@ -1601,7 +1711,7 @@
 
     // --- MAIN APP CONFIG & DATA ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v28_planner_filters";
+    const CACHE_KEY = "gousto_recipes_pwa_v29_edit_feature";
     const RATINGS_KEY = "gousto_recipe_ratings";
     const VIEW_MODE_KEY = "gousto_recipe_view_mode";
 
@@ -1612,21 +1722,15 @@
     let filterStar5 = false;
     let filterStar4 = false;
 
-    // View Mode: 'cards' or 'table'
     let currentViewMode = localStorage.getItem(VIEW_MODE_KEY) || 'cards';
-
-    // Interactive Table Header Sorting State
     let tableSortCol = null;
     let tableSortAsc = true;
 
-    // Planned Map: recipeId -> portions (e.g. { 1: 2, 5: 4 })
     let plannedPortionsMap = {};
     let ratingsMap = {};
 
-    // Grocery Modal Live Working State
     let groceryDraftPortions = {};
     let groceryDraftExcluded = new Set();
-
     let selectedPantryIngredients = new Set();
 
     let activeRecipe = null;
@@ -1666,9 +1770,6 @@
       render();
     }
 
-    // ==========================================
-    // CLEAR ALL FILTERS FUNCTIONALITY
-    // ==========================================
     function clearAllFilters() {
       currentProtein = 'All';
       filterHP = false;
@@ -2385,7 +2486,6 @@
       }).join('');
     }
 
-    // Modal Plan Button Update
     function updateModalPlanButton() {
       const btn = document.getElementById('btnModalPlanToggle');
       if (!btn || !activeRecipe) return;
@@ -2468,11 +2568,133 @@
       }).join('');
     }
 
+    // ==========================================
+    // IN-PLACE EDIT MODE LOGIC
+    // ==========================================
+    function switchToEditMode() {
+      if (!activeRecipe) return;
+      document.getElementById('modalViewContainer').style.display = 'none';
+      const editContainer = document.getElementById('modalEditContainer');
+      editContainer.style.display = 'flex';
+
+      document.getElementById('editTitleInput').value = activeRecipe.title || '';
+      document.getElementById('editProteinSelect').value = activeRecipe['protein source'] || activeRecipe.protein || 'Chicken';
+      document.getElementById('editTimeInput').value = activeRecipe.time || '30m';
+      document.getElementById('editCalInput').value = activeRecipe['calories (kcal)'] || '';
+      document.getElementById('editProtInput').value = activeRecipe['protein (g)'] || '';
+      document.getElementById('editCarbInput').value = activeRecipe['carbs (g)'] || '';
+      document.getElementById('editFatInput').value = activeRecipe['fat (g)'] || '';
+      document.getElementById('editTagsInput').value = activeRecipe.tags || '';
+      document.getElementById('editIngredientsTextarea').value = (activeRecipe.ingredients || []).join('\n');
+      document.getElementById('editInstructionsTextarea').value = activeRecipe.instructions || '';
+
+      const statusEl = document.getElementById('editStatusMessage');
+      statusEl.style.display = 'none';
+      document.getElementById('btnSaveRecipeEdit').disabled = false;
+    }
+
+    function cancelEditMode() {
+      document.getElementById('modalEditContainer').style.display = 'none';
+      document.getElementById('modalViewContainer').style.display = 'block';
+    }
+
+    async function submitRecipeEdit() {
+      if (!activeRecipe) return;
+
+      const originalTitle = activeRecipe.title;
+      const newTitle = document.getElementById('editTitleInput').value.trim();
+      if (!newTitle) {
+        alert("Please enter a recipe title.");
+        return;
+      }
+
+      const newProtein = document.getElementById('editProteinSelect').value;
+      const newTime = document.getElementById('editTimeInput').value.trim() || '30m';
+      const newCal = document.getElementById('editCalInput').value.trim();
+      const newProt = document.getElementById('editProtInput').value.trim();
+      const newCarb = document.getElementById('editCarbInput').value.trim();
+      const newFat = document.getElementById('editFatInput').value.trim();
+      const newTags = document.getElementById('editTagsInput').value.trim();
+      
+      const rawIngs = document.getElementById('editIngredientsTextarea').value;
+      const newIngredients = rawIngs.split(/\r?\n/).map(i => i.trim()).filter(Boolean);
+      const newInstructions = document.getElementById('editInstructionsTextarea').value.trim();
+
+      const btnSave = document.getElementById('btnSaveRecipeEdit');
+      const statusEl = document.getElementById('editStatusMessage');
+
+      btnSave.innerText = "Saving to Google Sheet...";
+      btnSave.disabled = true;
+      statusEl.style.display = 'block';
+      statusEl.style.color = '#38bdf8';
+      statusEl.innerText = "Updating sheet...";
+
+      // Optimistic local update
+      activeRecipe.title = newTitle;
+      activeRecipe['protein source'] = newProtein;
+      activeRecipe.time = newTime;
+      activeRecipe['calories (kcal)'] = newCal;
+      activeRecipe['protein (g)'] = newProt;
+      activeRecipe['carbs (g)'] = newCarb;
+      activeRecipe['fat (g)'] = newFat;
+      activeRecipe.tags = newTags;
+      activeRecipe.ingredients = newIngredients;
+      activeRecipe.instructions = newInstructions;
+
+      if (originalTitle !== newTitle && ratingsMap[originalTitle]) {
+        ratingsMap[newTitle] = ratingsMap[originalTitle];
+        delete ratingsMap[originalTitle];
+        localStorage.setItem(RATINGS_KEY, JSON.stringify(ratingsMap));
+      }
+
+      localStorage.setItem(CACHE_KEY, JSON.stringify(RECIPES));
+      render();
+      openDetails(activeRecipe.id);
+      cancelEditMode();
+
+      // Background sync to Google Sheet
+      try {
+        const payload = {
+          action: "editRecipe",
+          originalTitle: originalTitle,
+          title: newTitle,
+          'protein source': newProtein,
+          time: newTime,
+          'calories (kcal)': newCal,
+          'protein (g)': newProt,
+          'carbs (g)': newCarb,
+          'fat (g)': newFat,
+          tags: newTags,
+          ingredients: newIngredients.join(', '),
+          instructions: newInstructions
+        };
+
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+        if (result.status === "error") {
+          throw new Error(result.message || "Failed to update Google Sheet");
+        }
+      } catch (err) {
+        console.warn("Could not sync edit to Google Sheet:", err);
+        alert("Note: Saved locally in your browser, but failed to write to Google Sheet. Check connection.");
+      } finally {
+        btnSave.innerText = "💾 Save Changes";
+        btnSave.disabled = false;
+      }
+    }
+
     function openDetails(id) {
       const r = RECIPES.find(item => item.id == id);
       if (!r) return;
       activeRecipe = r;
       modalPortions = plannedPortionsMap[r.id] || 2;
+
+      cancelEditMode(); // Always ensure View mode is showing first
 
       const recipeKey = r.title || r.id;
       const cat = getProteinStyle(r['protein source'] || r.protein);
@@ -2801,7 +3023,7 @@
     }
 
     // ========================================================
-    // ENHANCED GROCERY MODAL (LIVE DRAFTING, STEPPERS, COPY)
+    // GROCERY MODAL LOGIC (LIVE DRAFTING, STEPPERS, COPY)
     // ========================================================
     function openGroceryModal() {
       groceryDraftPortions = { ...plannedPortionsMap };
@@ -2827,7 +3049,6 @@
       const activeCount = mealIds.filter(id => !groceryDraftExcluded.has(id)).length;
       summaryEl.innerText = `${activeCount} of ${mealIds.length} active`;
 
-      // 1. Render Planned Meals with Checkboxes & Steppers
       mealsListEl.innerHTML = mealIds.map(id => {
         const r = RECIPES.find(item => item.id == id);
         if (!r) return '';
@@ -2849,7 +3070,6 @@
         `;
       }).join('');
 
-      // 2. Render Aggregated Ingredients
       const agg = buildAggregatedIngredients(groceryDraftPortions);
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
@@ -2938,9 +3158,6 @@
       }
     }
 
-    // ========================================================
-    // BULLETPROOF VIEWPORT-AWARE CLIPBOARD ENGINE
-    // ========================================================
     function copyGrocery() {
       const agg = buildAggregatedIngredients(groceryDraftPortions);
       const items = Object.values(agg).sort((a, b) => a.displayName.localeCompare(b.displayName));
@@ -3028,7 +3245,12 @@
       }, 2000);
     }
 
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function closeModal(id) { 
+      document.getElementById(id).style.display = 'none'; 
+      if (id === 'detailModal') {
+        cancelEditMode();
+      }
+    }
 
     loadData();
   </script>
