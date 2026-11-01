@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Chris' Recipe Database</title>
   <meta name="theme-color" content="#ffffff">
-  <!-- Food / Dinner Emoji Favicon (Hot Pot / Meal 🍲) -->
+  <!-- Food Emoji Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍲</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -116,6 +116,16 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+    .logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-favicon {
+      font-size: 22px;
+      line-height: 1;
+      user-select: none;
     }
     .logo {
       font-size: 19px;
@@ -504,21 +514,12 @@
     .macro-cell.carb strong { color: var(--macro-carb); }
     .macro-cell.fat strong { color: var(--macro-fat); }
 
-    .ing-wrap { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; }
-    .ing-tag {
-      font-size: 11px;
-      padding: 3px 8px;
-      background: #f1f5f9;
-      border-radius: 6px;
-      color: #334155;
-    }
-
     .card-hint {
       font-size: 12px;
       font-weight: 700;
       color: var(--brand);
       text-align: right;
-      margin-top: 4px;
+      margin-top: 8px;
       display: flex;
       justify-content: flex-end;
       align-items: center;
@@ -526,7 +527,7 @@
     }
 
     /* ========================================================
-       TABLE VIEW STYLES
+       TABLE VIEW STYLES & SORT INDICATORS
        ======================================================== */
     .table-container {
       width: 100%;
@@ -552,6 +553,23 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
       border-bottom: 1px solid var(--border);
+      user-select: none;
+    }
+    .recipe-table th.sortable {
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .recipe-table th.sortable:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    .th-sort-icon {
+      font-size: 10px;
+      margin-left: 4px;
+      color: #94a3b8;
+    }
+    .th-sort-icon.active {
+      color: var(--brand);
     }
     .recipe-table td {
       padding: 12px 14px;
@@ -1247,7 +1265,7 @@
   <!-- PIN LOCK SCREEN -->
   <div id="lockScreen">
     <div class="pin-card">
-      <div style="font-size: 32px; margin-bottom: 6px;">🍲</div>
+      <div style="font-size: 36px; margin-bottom: 6px;">🍲</div>
       <h3 style="margin: 0; font-size: 20px; font-weight: 800;">Chris' Recipe Database</h3>
       <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 13px;">Enter PIN to unlock your recipes</p>
       <input type="password" id="pinCode" class="pin-input" maxlength="6" inputmode="numeric" placeholder="••••••" autofocus>
@@ -1258,7 +1276,10 @@
 
   <header>
     <div class="header-inner">
-      <h1 class="logo">Chris' <span>Recipe Database</span></h1>
+      <div class="logo-wrap">
+        <span class="header-favicon">🍲</span>
+        <h1 class="logo">Chris' <span>Recipe Database</span></h1>
+      </div>
       <div class="header-actions">
         <button class="btn-header-action" onclick="openImportModal()">📥 Import</button>
         <button class="btn-header-action" onclick="lockApp()">🔒 Lock</button>
@@ -1270,7 +1291,7 @@
   <main>
     <div class="search-card">
       <div class="input-row">
-        <input type="text" id="searchInput" class="search-input" placeholder="Search ingredients or dish title..." oninput="render()">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search dish title or keywords..." oninput="render()">
         
         <!-- View Toggle (Cards vs Table) -->
         <div class="view-toggle-wrap">
@@ -1280,7 +1301,7 @@
 
         <button class="btn-pantry-trigger" id="btnPantryTrigger" onclick="openPantryModal()">🥕 Match Pantry</button>
         
-        <select id="sortSelect" class="sort-dropdown" onchange="render()">
+        <select id="sortSelect" class="sort-dropdown" onchange="onDropdownSortChange()">
           <option value="default">Default Sort</option>
           <option value="lastCookedAsc">⏳ Least Recently Cooked</option>
           <option value="lastCookedDesc">🔥 Most Recently Cooked</option>
@@ -1532,7 +1553,7 @@
 
     // --- MAIN APP CONFIG & DATA ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRjjoLB15q46d_-climwl-mt8QJp7yPkYmmBkDb9ofvAA8yfjjBekPUNkCqxh-rK6HUA/exec";
-    const CACHE_KEY = "gousto_recipes_pwa_v23_table_view";
+    const CACHE_KEY = "gousto_recipes_pwa_v24_interactive_table";
     const RATINGS_KEY = "gousto_recipe_ratings";
     const VIEW_MODE_KEY = "gousto_recipe_view_mode";
 
@@ -1545,6 +1566,10 @@
 
     // View Mode: 'cards' or 'table'
     let currentViewMode = localStorage.getItem(VIEW_MODE_KEY) || 'cards';
+
+    // Interactive Table Header Sorting State
+    let tableSortCol = null;  // 'title', 'protein', 'time', 'cal', 'prot', 'carb', 'fat', 'rating'
+    let tableSortAsc = true;
 
     // Planned Map: recipeId -> portions (e.g. { 1: 2, 5: 4 })
     let plannedPortionsMap = {};
@@ -1573,6 +1598,22 @@
       localStorage.setItem(VIEW_MODE_KEY, mode);
       document.getElementById('btnViewCards').classList.toggle('active', mode === 'cards');
       document.getElementById('btnViewTable').classList.toggle('active', mode === 'table');
+      render();
+    }
+
+    function onDropdownSortChange() {
+      // Clear table column sort override when dropdown is changed manually
+      tableSortCol = null;
+      render();
+    }
+
+    function sortTableBy(col) {
+      if (tableSortCol === col) {
+        tableSortAsc = !tableSortAsc;
+      } else {
+        tableSortCol = col;
+        tableSortAsc = true;
+      }
       render();
     }
 
@@ -1978,7 +2019,7 @@
     }
 
     // ========================================================
-    // RENDER: SUPPORTS CARDS & TABLE VIEW MODES
+    // RENDER: SUPPORTS CARDS & INTERACTIVE TABLE VIEW
     // ========================================================
     function render() {
       const q = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -2019,34 +2060,70 @@
         return matchesProtein && matchesHP && matchesLC && matchesStar5 && matchesStar4 && matchesSearch && matchesPantry;
       });
 
-      if (selectedPantryIngredients.size > 0 && sortVal === 'default') {
-        filtered.sort((a,b) => (b._pantryMatchCount || 0) - (a._pantryMatchCount || 0));
-      } else if (sortVal === 'lastCookedAsc') {
-        filtered.sort((a,b) => {
-          const tA = a['last cooked'] ? new Date(a['last cooked']).getTime() : 0;
-          const tB = b['last cooked'] ? new Date(b['last cooked']).getTime() : 0;
-          return tA - tB;
+      // 1. Check if an interactive table header sort is active
+      if (currentViewMode === 'table' && tableSortCol) {
+        filtered.sort((a, b) => {
+          let valA = 0, valB = 0;
+          if (tableSortCol === 'title') {
+            valA = (a.title || '').toLowerCase();
+            valB = (b.title || '').toLowerCase();
+            return tableSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+          } else if (tableSortCol === 'protein') {
+            valA = (a['protein source'] || a.protein || '').toLowerCase();
+            valB = (b['protein source'] || b.protein || '').toLowerCase();
+            return tableSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+          } else if (tableSortCol === 'time') {
+            valA = parseInt(a.time) || 999;
+            valB = parseInt(b.time) || 999;
+          } else if (tableSortCol === 'cal') {
+            valA = parseFloat(a['calories (kcal)']) || 0;
+            valB = parseFloat(b['calories (kcal)']) || 0;
+          } else if (tableSortCol === 'prot') {
+            valA = parseFloat(a['protein (g)']) || 0;
+            valB = parseFloat(b['protein (g)']) || 0;
+          } else if (tableSortCol === 'carb') {
+            valA = parseFloat(a['carbs (g)']) || 0;
+            valB = parseFloat(b['carbs (g)']) || 0;
+          } else if (tableSortCol === 'fat') {
+            valA = parseFloat(a['fat (g)']) || 0;
+            valB = parseFloat(b['fat (g)']) || 0;
+          } else if (tableSortCol === 'rating') {
+            valA = ratingsMap[a.title] || ratingsMap[a.id] || parseInt(a.rating) || 0;
+            valB = ratingsMap[b.title] || ratingsMap[b.id] || parseInt(b.rating) || 0;
+          }
+          return tableSortAsc ? (valA - valB) : (valB - valA);
         });
-      } else if (sortVal === 'lastCookedDesc') {
-        filtered.sort((a,b) => {
-          const tA = a['last cooked'] ? new Date(a['last cooked']).getTime() : 0;
-          const tB = b['last cooked'] ? new Date(b['last cooked']).getTime() : 0;
-          return tB - tA;
-        });
-      } else if (sortVal === 'rating') {
-        filtered.sort((a,b) => {
-          const rA = ratingsMap[a.title] || ratingsMap[a.id] || 0;
-          const rB = ratingsMap[b.title] || ratingsMap[b.id] || 0;
-          return rB - rA;
-        });
-      } else if (sortVal === 'time') {
-        filtered.sort((a,b) => (parseInt(a.time)||999) - (parseInt(b.time)||999));
-      } else if (sortVal === 'prot') {
-        filtered.sort((a,b) => (parseFloat(b['protein (g)'])||0) - (parseFloat(a['protein (g)'])||0));
-      } else if (sortVal === 'carb') {
-        filtered.sort((a,b) => (parseFloat(a['carbs (g)'])||999) - (parseFloat(b['carbs (g)'])||999));
-      } else if (sortVal === 'cal') {
-        filtered.sort((a,b) => (parseFloat(a['calories (kcal)'])||999) - (parseFloat(b['calories (kcal)'])||999));
+      // 2. Otherwise fall back to the top dropdown sort
+      } else {
+        if (selectedPantryIngredients.size > 0 && sortVal === 'default') {
+          filtered.sort((a,b) => (b._pantryMatchCount || 0) - (a._pantryMatchCount || 0));
+        } else if (sortVal === 'lastCookedAsc') {
+          filtered.sort((a,b) => {
+            const tA = a['last cooked'] ? new Date(a['last cooked']).getTime() : 0;
+            const tB = b['last cooked'] ? new Date(b['last cooked']).getTime() : 0;
+            return tA - tB;
+          });
+        } else if (sortVal === 'lastCookedDesc') {
+          filtered.sort((a,b) => {
+            const tA = a['last cooked'] ? new Date(a['last cooked']).getTime() : 0;
+            const tB = b['last cooked'] ? new Date(b['last cooked']).getTime() : 0;
+            return tB - tA;
+          });
+        } else if (sortVal === 'rating') {
+          filtered.sort((a,b) => {
+            const rA = ratingsMap[a.title] || ratingsMap[a.id] || 0;
+            const rB = ratingsMap[b.title] || ratingsMap[b.id] || 0;
+            return rB - rA;
+          });
+        } else if (sortVal === 'time') {
+          filtered.sort((a,b) => (parseInt(a.time)||999) - (parseInt(b.time)||999));
+        } else if (sortVal === 'prot') {
+          filtered.sort((a,b) => (parseFloat(b['protein (g)'])||0) - (parseFloat(a['protein (g)'])||0));
+        } else if (sortVal === 'carb') {
+          filtered.sort((a,b) => (parseFloat(a['carbs (g)'])||999) - (parseFloat(b['carbs (g)'])||999));
+        } else if (sortVal === 'cal') {
+          filtered.sort((a,b) => (parseFloat(a['calories (kcal)'])||999) - (parseFloat(b['calories (kcal)'])||999));
+        }
       }
 
       if (filtered.length === 0) {
@@ -2054,8 +2131,14 @@
         return;
       }
 
+      // Helper for Table Column Sort Arrows
+      const getThIcon = (col) => {
+        if (tableSortCol !== col) return '<span class="th-sort-icon">▲▼</span>';
+        return `<span class="th-sort-icon active">${tableSortAsc ? '▲' : '▼'}</span>`;
+      };
+
       // ==========================================
-      // VIEW A: TABLE VIEW
+      // VIEW A: INTERACTIVE SORTABLE TABLE VIEW
       // ==========================================
       if (currentViewMode === 'table') {
         mainContainer.innerHTML = `
@@ -2063,14 +2146,14 @@
             <table class="recipe-table">
               <thead>
                 <tr>
-                  <th>Dish Title</th>
-                  <th>Protein</th>
-                  <th>Prep Time</th>
-                  <th>Calories</th>
-                  <th>Protein</th>
-                  <th>Carbs</th>
-                  <th>Fat</th>
-                  <th>Rating</th>
+                  <th class="sortable" onclick="sortTableBy('title')">Dish Title ${getThIcon('title')}</th>
+                  <th class="sortable" onclick="sortTableBy('protein')">Protein ${getThIcon('protein')}</th>
+                  <th class="sortable" onclick="sortTableBy('time')">Prep Time ${getThIcon('time')}</th>
+                  <th class="sortable" onclick="sortTableBy('cal')">Calories ${getThIcon('cal')}</th>
+                  <th class="sortable" onclick="sortTableBy('prot')">Protein (g) ${getThIcon('prot')}</th>
+                  <th class="sortable" onclick="sortTableBy('carb')">Carbs ${getThIcon('carb')}</th>
+                  <th class="sortable" onclick="sortTableBy('fat')">Fat ${getThIcon('fat')}</th>
+                  <th class="sortable" onclick="sortTableBy('rating')">Rating ${getThIcon('rating')}</th>
                   <th style="text-align:right;">Meal Plan</th>
                 </tr>
               </thead>
@@ -2119,7 +2202,7 @@
       }
 
       // ==========================================
-      // VIEW B: CARD VIEW (DEFAULT)
+      // VIEW B: CARD VIEW (INGREDIENTS OMITTED, PROTEIN BADGE RETAINED)
       // ==========================================
       mainContainer.innerHTML = `
         <div class="recipe-grid">
@@ -2166,19 +2249,10 @@
                     <div class="macro-cell carb"><strong>${r['carbs (g)']||'-'}g</strong><span>Carb</span></div>
                     <div class="macro-cell fat"><strong>${r['fat (g)']||'-'}g</strong><span>Fat</span></div>
                   </div>
-
-                  <div class="ing-wrap">
-                    ${(r.ingredients||[]).slice(0, 4).map(i => {
-                      const parsed = parseIngredientItem(i);
-                      const displayStr = parsed.unit || parsed.qty > 1 ? `${parsed.name} (${parsed.qty}${parsed.unit})` : parsed.name;
-                      return `<span class="ing-tag">${displayStr}</span>`;
-                    }).join('')}
-                    ${(r.ingredients||[]).length > 4 ? `<span class="ing-tag" style="background:transparent; color:#94a3b8;">+${r.ingredients.length - 4} more</span>` : ''}
-                  </div>
                 </div>
 
                 <div class="card-hint">
-                  <span>View full recipe</span> →
+                  <span>View recipe details</span> →
                 </div>
               </div>
             `;
@@ -2299,7 +2373,6 @@
 
       renderModalRating(recipeKey);
 
-      // Strictly per-portion macros
       document.getElementById('mMacros').innerHTML = `
         <div class="macro-cell kcal"><strong>${r['calories (kcal)']||'-'}</strong><span>kcal / portion</span></div>
         <div class="macro-cell prot"><strong>${r['protein (g)']||'-'}g</strong><span>Protein</span></div>
